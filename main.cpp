@@ -1,25 +1,33 @@
 #include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
 
-// TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+#include "lexer.h"
+
 int main() {
-    // TIP Press <shortcut actionId="RenameElement"/> when your caret is at the
-    // <b>lang</b> variable name to see how CLion can help you rename it.
-    auto lang = "C++";
-    std::cout << "Hello and welcome to " << lang << "!\n";
+    defineRustTokenPatterns();
 
-    for (int i = 1; i <= 5; i++) {
-        // TIP Press <shortcut actionId="Debug"/> to start debugging your code.
-        // We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/>
-        // breakpoint for you, but you can always add more by pressing
-        // <shortcut actionId="ToggleLineBreakpoint"/>.
-        std::cout << "i = " << i << std::endl;
+    std::string filePath = "../samples/array4.rs";
+    std::ifstream inputFile(filePath);
+
+    if (!inputFile.is_open()) {
+        std::cerr << "Error: Could not open file " << filePath << std::endl;
+        return 1;
+    }
+
+    std::string rustCode((std::istreambuf_iterator<char>(inputFile)),
+                         std::istreambuf_iterator<char>());
+    inputFile.close();
+
+    std::vector<Token> tokens = tokenizeRustCode(rustCode);
+
+    std::cout << "--- Tokens from " << filePath << " ---" << std::endl;
+    for (const auto& token : tokens) {
+        std::cout << "Type: " << tokenTypeToString(token.type)
+                  << ", Value: \"" << token.value
+                  << "\", Pos: " << token.number << std::endl;
     }
 
     return 0;
 }
-
-// TIP See CLion help at <a
-// href="https://www.jetbrains.com/help/clion/">jetbrains.com/help/clion/</a>.
-//  Also, you can try interactive lessons for CLion by selecting
-//  'Help | Learn IDE Features' from the main menu.
