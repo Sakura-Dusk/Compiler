@@ -16,7 +16,10 @@ else()
     message(FATAL_ERROR "Boost not found! Please set BOOST_ROOT or install Boost.")
 endif()
 
-add_executable(Compiler main.cpp)
+add_executable(Compiler main.cpp
+        AST/node/basic.h
+        AST/node/expression.h
+        AST/node/Literal_Type.h)
 
 # 将 Boost.Regex 库链接到你的可执行文件
 target_link_libraries(Compiler PUBLIC Boost::regex)
