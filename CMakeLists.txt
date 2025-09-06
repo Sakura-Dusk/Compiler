@@ -19,7 +19,8 @@ endif()
 add_executable(Compiler main.cpp
         AST/node/basic.h
         AST/node/expression.h
-        AST/node/Literal_Type.h)
+        AST/node/Literal_Type.h
+        semantic/expression_checker.h)
 
 # 将 Boost.Regex 库链接到你的可执行文件
 target_link_libraries(Compiler PUBLIC Boost::regex)

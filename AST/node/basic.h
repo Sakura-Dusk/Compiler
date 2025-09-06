@@ -10,6 +10,8 @@ class SemanticAnalyzer;
 
 class BasicNode {
 public:
+    virtual ~BasicNode() = default;
+
     virtual void accept(SemanticAnalyzer &visitor) = 0;
 };
 
