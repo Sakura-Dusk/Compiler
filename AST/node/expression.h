@@ -12,6 +12,7 @@
 #include <optional>
 
 #include "basic.h"
+#include "basic.h"
 
 class SemanticAnalyzer;
 
@@ -36,17 +37,13 @@ public:
 
 class PathExpression final : Expression {
 public:
-    struct Expression_Args {
-        std::vector<std::shared_ptr<Expression>> arguments;
-    };
     struct PathPattern {
         std::string identifier;
-        std::optional<Expression_Args> parameter;
+        //identifier can be self / Self
     };
-    bool have_leading_colon;
     std::vector<PathPattern> paths;
 
-    PathExpression(bool have_colon, std::vector<PathPattern> paths): have_leading_colon(have_colon), paths(std::move(paths)) {}
+    PathExpression(std::vector<PathPattern> paths): paths(std::move(paths)) {}
 
     void accept(SemanticAnalyzer &visitor) override {
         visitor.visit(*this);
@@ -55,7 +52,7 @@ public:
 
 class BlockExpression final : Expression {
 public:
-    std::vector<std::shared_ptr<BasicNode>> statement;
+    std::vector<std::shared_ptr<BasicNode>> statement{};
     std::optional<std::shared_ptr<Expression>> no_block_expression;
 
     BlockExpression(std::vector<std::shared_ptr<BasicNode>> statement, std::optional<std::shared_ptr<Expression>> no_block_expression = std::nullopt): statement(std::move(statement)), no_block_expression(std::move(no_block_expression)) {}
@@ -84,7 +81,7 @@ class DereferenceExpression final : Expression {
 public:
     std::shared_ptr<Expression> expression;
 
-    DereferenceExpression(std::shared_ptr<Expression> expression):expression(std::move(expression)) {}
+   DereferenceExpression(std::shared_ptr<Expression> expression):expression(std::move(expression)) {}
 
     void accept(SemanticAnalyzer &visitor) override {
         visitor.visit(*this);
@@ -272,6 +269,133 @@ public:
 
 //End Operator Expression
 
+struct GroupedExpression final : Expression {
+public:
+    std::shared_ptr<Expression> expression;
 
+    GroupedExpression(std::shared_ptr<Expression> expression): expression(std::move(expression)) {}
+
+    void accept(SemanticAnalyzer &visitor) override {
+        visitor.visit(*this);
+    }
+};
+
+//start Array and index expressions
+
+struct ArrayExpression final : Expression {
+public:
+    struct ArrayElements {
+        bool is_semicolon;
+        std::vector<std::shared_ptr<Expression>> elements;
+    };
+    std::optional<ArrayElements> array_elements;
+
+    ArrayExpression(std::optional<ArrayElements> array_elements): array_elements(std::move(array_elements)) {}
+
+    void accept(SemanticAnalyzer &visitor) override {
+        visitor.visit(*this);
+    }
+};
+
+struct IndexExpression final : Expression {
+public:
+    std::shared_ptr<Expression> left_expression, right_expression;
+
+    IndexExpression(std::shared_ptr<Expression> left_expression, std::shared_ptr<Expression> right_expression):left_expression(std::move(left_expression)), right_expression(std::move(right_expression)) {}
+
+    void accept(SemanticAnalyzer &visitor) override {
+        visitor.visit(*this);
+    }
+};
+
+//end Array end index expressions
+
+struct StructExpression final : Expression {
+public:
+    struct StructExprField {
+        std::string identifier;
+        std::optional<std::shared_ptr<Expression>> expression;
+    };
+
+    PathExpression path_in_expression;
+    std::vector<StructExprField> fields;
+
+    StructExpression(PathExpression path_in_expression, std::vector<StructExprField> fields): path_in_expression(std::move(path_in_expression)), fields(std::move(fields)) {}
+
+    void accept(SemanticAnalyzer &visitor) override {
+        visitor.visit(*this);
+    }
+};
+
+struct CallParams {
+    std::vector<std::shared_ptr<Expression>> arguments;
+};
+
+struct CallExpression final : Expression {
+public:
+    std::shared_ptr<Expression> expression;
+    std::optional<CallParams> call_params;
+
+    CallExpression(std::shared_ptr<Expression> expression, std::optional<CallParams> call_params): expression(std::move(expression)), call_params(std::move(call_params)) {}
+
+    void accept(SemanticAnalyzer &visitor) override {
+        visitor.visit(*this);
+    }
+};
+
+struct MethodCallExpression final : Expression {
+public:
+    std::shared_ptr<Expression> expression;
+    std::string pathexprsegment;
+    std::vector<CallParams> call_params;
+
+    MethodCallExpression(std::shared_ptr<Expression>expression, std::string pathexprsegment, std::vector<CallParams> call_paramses): expression(std::move(expression)), pathexprsegment(std::move(pathexprsegment)), call_params(std::move(call_paramses)) {}
+
+    void accept(SemanticAnalyzer &visitor) override {
+        visitor.visit(*this);
+    }
+};
+
+
+struct FieldAccessExpression final : Expression {
+public:
+    std::shared_ptr<Expression> expression;
+    std::string identifier;
+
+    FieldAccessExpression(std::shared_ptr<Expression> expression, std::string identifier): expression(std::move(expression)), identifier(std::move(identifier)) {}
+
+    void accept(SemanticAnalyzer &visitor) override {
+        visitor.visit(*this);
+    }
+};
+
+//start Loop expressions
+
+struct InfiniteExpression final : Expression {
+public:
+    BlockExpression block_expression;
+
+    InfiniteExpression(BlockExpression block_expression): block_expression(std::move(block_expression)) {}
+
+    void accept(SemanticAnalyzer &visitor) override {
+        visitor.visit(*this);
+    }
+};
+
+struct PredicateExpression final : Expression {
+public:
+    std::shared_ptr<Expression> conditions;
+    BlockExpression block_expression;
+
+    PredicateExpression(std::shared_ptr<Expression> conditions, BlockExpression block_expression): conditions(std::move(conditions)), block_expression(std::move(block_expression)) {}
+
+    void accept(SemanticAnalyzer &visitor) override {
+        visitor.visit(*this);
+    }
+};
+
+
+
+//end Loop expressions
 
 #endif //EXPRESSION_H
