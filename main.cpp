@@ -8,7 +8,7 @@
 int main() {
     defineRustTokenPatterns();
 
-    std::string filePath = "../samples/array8.rs";
+    std::string filePath = "../samples/temp.rs";
     std::ifstream inputFile(filePath);
 
     if (!inputFile.is_open()) {

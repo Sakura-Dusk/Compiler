@@ -59,9 +59,9 @@ void defineRustTokenPatterns() {
     patterns.push_back({TokenType::Comment, std::regex(R"(\/\*[\s\S]*?\*\/)"), "/* Block comment */"});
 
     patterns.push_back({TokenType::StringLiteral, std::regex(R"("(?:[^"\\]|\\.)*")"), "String literal"});
-    patterns.push_back({TokenType::StringLiteral, std::regex(R"(r#"(?:[^"]|""|#*")*?"#)"), "Raw string literal"});
+    patterns.push_back({TokenType::StringLiteral, std::regex(R"(r(#*)\"[\s\S]*?\"\1)"), "Raw string literal"});
     patterns.push_back({TokenType::StringLiteral, std::regex(R"(b"(?:[^"\\]|\\.)*")"), "Byte string literal"});
-    patterns.push_back({TokenType::StringLiteral, std::regex(R"(br#"(?:[^"\\]|\\.)*#")"), "Raw byte string literal"});
+    patterns.push_back({TokenType::StringLiteral, std::regex(R"(br(#*)\"[\s\S]*?\"\1)"), "Raw byte string literal"});
 
     patterns.push_back({TokenType::CharLiteral, std::regex(R"(' (?:[^'\\]|\\.) ')"), "Character literal"});
     patterns.push_back({TokenType::CharLiteral, std::regex(R"(b' (?:[^'\\]|\\.) ')"), "Byte literal"});

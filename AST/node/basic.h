@@ -39,6 +39,11 @@ public:
     void visit(const FieldAccessExpression & node);
     void visit(const InfiniteExpression & node);
     void visit(const PredicateExpression & node);
+    void visit(const BreakExpression & node);
+    void visit(const ContinueExpression & node);
+    void visit(const IfExpression & node);
+    void visit(const ReturnExpression & node);
+    void visit(const UnderscoreExpression & node);
 
 };
 

@@ -394,8 +394,59 @@ public:
     }
 };
 
+struct BreakExpression final : Expression {
+public:
+    std::optional<std::shared_ptr<Expression>> expression;
 
+    BreakExpression(std::optional<std::shared_ptr<Expression>> expression): expression(std::move(expression)) {}
+
+    void accept(SemanticAnalyzer &visitor) override {
+        visitor.visit(*this);
+    }
+};
+
+struct ContinueExpression final : Expression {
+public:
+    ContinueExpression(){}
+
+    void accept(SemanticAnalyzer &visitor) override {
+        visitor.visit(*this);
+    }
+};
 
 //end Loop expressions
+
+struct IfExpression final : Expression {
+public:
+    std::shared_ptr<Expression> conditions;
+    BlockExpression then_expression;
+    std::optional<std::shared_ptr<Expression>> else_expression;
+
+    IfExpression(std::shared_ptr<Expression> conditions, BlockExpression then_expression, std::optional<std::shared_ptr<Expression>> else_expression): conditions(std::move(conditions)), then_expression(std::move(then_expression)), else_expression(std::move(else_expression)) {}
+
+    void accept(SemanticAnalyzer &visitor) override {
+        visitor.visit(*this);
+    }
+};
+
+struct ReturnExpression final : Expression {
+public:
+    std::optional<std::shared_ptr<Expression>> expression;
+
+    ReturnExpression(std::optional<std::shared_ptr<Expression>> expression): expression(std::move(expression)) {}
+
+    void accept(SemanticAnalyzer &visitor) override {
+        visitor.visit(*this);
+    }
+};
+
+struct UnderscoreExpression final : Expression {
+public:
+    UnderscoreExpression(){}
+
+    void accept(SemanticAnalyzer &visitor) override {
+        visitor.visit(*this);
+    }
+};
 
 #endif //EXPRESSION_H
