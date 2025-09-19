@@ -11,16 +11,15 @@
 #include "Literal_Type.h"
 #include <optional>
 
-#include "basic.h"
-#include "basic.h"
-
 class SemanticAnalyzer;
 
-class Expression: BasicNode {
+class Expression: public BasicNode {
 public:
-    virtual ~Expression() = default;
+    Expression()= default;
+    explicit Expression(astNodetype type) : BasicNode(type) {}
+    ~Expression() override = default;
 
-    virtual void accept(SemanticAnalyzer &visitor) = 0;
+    void accept(SemanticAnalyzer &visitor) override = 0;
 };
 
 class LiteralExpression final : Expression {
@@ -52,7 +51,7 @@ public:
 
 class BlockExpression final : Expression {
 public:
-    std::vector<std::shared_ptr<BasicNode>> statement{};
+    std::vector<std::shared_ptr<BasicNode>> statement;
     std::optional<std::shared_ptr<Expression>> no_block_expression;
 
     BlockExpression(std::vector<std::shared_ptr<BasicNode>> statement, std::optional<std::shared_ptr<Expression>> no_block_expression = std::nullopt): statement(std::move(statement)), no_block_expression(std::move(no_block_expression)) {}
@@ -269,7 +268,7 @@ public:
 
 //End Operator Expression
 
-struct GroupedExpression final : Expression {
+class GroupedExpression final : Expression {
 public:
     std::shared_ptr<Expression> expression;
 
@@ -282,7 +281,7 @@ public:
 
 //start Array and index expressions
 
-struct ArrayExpression final : Expression {
+class ArrayExpression final : Expression {
 public:
     struct ArrayElements {
         bool is_semicolon;
@@ -297,7 +296,7 @@ public:
     }
 };
 
-struct IndexExpression final : Expression {
+class IndexExpression final : Expression {
 public:
     std::shared_ptr<Expression> left_expression, right_expression;
 
@@ -310,7 +309,7 @@ public:
 
 //end Array end index expressions
 
-struct StructExpression final : Expression {
+class StructExpression final : Expression {
 public:
     struct StructExprField {
         std::string identifier;
@@ -327,11 +326,11 @@ public:
     }
 };
 
-struct CallParams {
+class CallParams {
     std::vector<std::shared_ptr<Expression>> arguments;
 };
 
-struct CallExpression final : Expression {
+class CallExpression final : Expression {
 public:
     std::shared_ptr<Expression> expression;
     std::optional<CallParams> call_params;
@@ -343,7 +342,7 @@ public:
     }
 };
 
-struct MethodCallExpression final : Expression {
+class MethodCallExpression final : Expression {
 public:
     std::shared_ptr<Expression> expression;
     std::string pathexprsegment;
@@ -357,7 +356,7 @@ public:
 };
 
 
-struct FieldAccessExpression final : Expression {
+class FieldAccessExpression final : Expression {
 public:
     std::shared_ptr<Expression> expression;
     std::string identifier;
@@ -371,7 +370,7 @@ public:
 
 //start Loop expressions
 
-struct InfiniteExpression final : Expression {
+class InfiniteExpression final : Expression {
 public:
     BlockExpression block_expression;
 
@@ -382,7 +381,7 @@ public:
     }
 };
 
-struct PredicateExpression final : Expression {
+class PredicateExpression final : Expression {
 public:
     std::shared_ptr<Expression> conditions;
     BlockExpression block_expression;
@@ -394,7 +393,7 @@ public:
     }
 };
 
-struct BreakExpression final : Expression {
+class BreakExpression final : Expression {
 public:
     std::optional<std::shared_ptr<Expression>> expression;
 
@@ -405,7 +404,7 @@ public:
     }
 };
 
-struct ContinueExpression final : Expression {
+class ContinueExpression final : Expression {
 public:
     ContinueExpression(){}
 
@@ -416,7 +415,7 @@ public:
 
 //end Loop expressions
 
-struct IfExpression final : Expression {
+class IfExpression final : Expression {
 public:
     std::shared_ptr<Expression> conditions;
     BlockExpression then_expression;
@@ -429,7 +428,7 @@ public:
     }
 };
 
-struct ReturnExpression final : Expression {
+class ReturnExpression final : Expression {
 public:
     std::optional<std::shared_ptr<Expression>> expression;
 
@@ -440,7 +439,7 @@ public:
     }
 };
 
-struct UnderscoreExpression final : Expression {
+class UnderscoreExpression final : Expression {
 public:
     UnderscoreExpression(){}
 

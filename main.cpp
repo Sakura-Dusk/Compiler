@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "lexer.h"
+#include "parser.h"
 
 int main() {
     defineRustTokenPatterns();
@@ -27,6 +28,20 @@ int main() {
         std::cout << "Type: " << tokenTypeToString(token.type)
                   << ", Value: \"" << token.value
                   << "\", Pos: " << token.number << std::endl;
+
+        if (token.type == TokenType::Unknown) {
+            std::cout << "Compile Error";
+            return 0;
+        }
+    }
+
+    auto parser = Parser(tokens);
+    try {
+        parser.work();
+    }
+    catch (...) {
+        std::cout << "Compile Error";
+        return 0;
     }
 
     return 0;

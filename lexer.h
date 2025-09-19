@@ -6,7 +6,6 @@
 #define LEXER_H
 
 #include <regex>
-#include <map>
 
 enum class TokenType {
     Keyword,
@@ -92,6 +91,7 @@ void defineRustTokenPatterns() {
     }
 
     patterns.push_back({TokenType::Operator, std::regex(R"(->|=>|\.\.|:?)"), "Operator: ->, =>, ..?, etc."});
+    patterns.push_back({TokenType::Operator, std::regex(R"(::|_)"), "Operator: ::,_"});
     patterns.push_back({TokenType::Operator, std::regex(R"(==|!=|<=|>=|\+=|-=|\*=|/=|%=|&&|\|\||<<|>>|=)"), "Operator: ==, !=, etc."});
     patterns.push_back({TokenType::Operator, std::regex(R"([+\-*\/%&|^!~<>] )"), "Operator: +, -, *, /, etc."});
     patterns.push_back({TokenType::Punctuation, std::regex(R"([{}();.,:\[\]])"), "Punctuation: {}, ();,."});

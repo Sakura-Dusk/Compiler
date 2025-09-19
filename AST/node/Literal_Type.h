@@ -55,18 +55,18 @@ public:
     LiteralType atom(Atom_Literal_Type x) {
         return LiteralType{x};
     }
-    LiteralType tuple(std::vector<LiteralType> x) {
-        return LiteralType{Tuple{std::move(x)}};
-    }
+    // LiteralType tuple(std::vector<LiteralType> x) {
+    //     return LiteralType{Tuple{std::move(x)}};
+    // }
     LiteralType array(const LiteralType& x, size_t s) {
         return LiteralType{Array{s, std::make_shared<LiteralType>(x)}};
     }
-    LiteralType slice(const LiteralType& x) {
-        return LiteralType{Slice{std::make_shared<LiteralType>(x)}};
-    }
-    LiteralType union_(std::vector<LiteralType> x) {
-        return LiteralType{Union{x}};
-    }
+    // LiteralType slice(const LiteralType& x) {
+    //     return LiteralType{Slice{std::make_shared<LiteralType>(x)}};
+    // }
+    // LiteralType union_(std::vector<LiteralType> x) {
+    //     return LiteralType{Union{x}};
+    // }
     LiteralType path(std::vector<std::string> x) {
         return LiteralType{Path{x}};
     }
@@ -169,7 +169,7 @@ std::string show(const LiteralType& x) {
     if (x.is_tuple()) {
         const auto fnd = x.get_tuple();
         std::string res = "{";
-        for (auto it : fnd) {
+        for (auto it : fnd.elements) {
             res += show(it);
             res += ", ";
         }
@@ -181,7 +181,7 @@ std::string show(const LiteralType& x) {
         std::string res = "[";
         res += show(*fnd.elements);
         res += "; size = ";
-        res += std::to_string(fnd.size());
+        res += std::to_string(fnd.size);
         res += "]";
         return res;
     }
@@ -195,7 +195,9 @@ std::string show(const LiteralType& x) {
     if (x.is_union()) {
         const auto fnd = x.get_union();
         std::string res = "{(union)";
-        res += show(*fnd.options);
+        for (const auto& option : fnd.options) {
+            res += show(option) + ", ";
+        }
         res += "}";
         return res;
     }
@@ -203,9 +205,9 @@ std::string show(const LiteralType& x) {
         const auto fnd = x.get_path();
         std::string res = "{(path)";
         bool fir = true;
-        for (auto it : fnd) {
+        for (const auto& it : fnd.paths) {
             if (!fir) res += "::";
-            res += show(it);
+            res += it;
             fir = false;
         }
         res += "}";
