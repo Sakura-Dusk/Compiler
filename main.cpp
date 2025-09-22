@@ -4,11 +4,9 @@
 #include <vector>
 
 #include "lexer.h"
-#include "parser.h"
+#include "parser/parser.h"
 
 int main() {
-    defineRustTokenPatterns();
-
     std::string filePath = "../samples/temp.rs";
     std::ifstream inputFile(filePath);
 
@@ -21,7 +19,9 @@ int main() {
                          std::istreambuf_iterator<char>());
     inputFile.close();
 
-    std::vector<Token> tokens = tokenizeRustCode(rustCode);
+    Lexer lexer(rustCode);
+    lexer.defineRustTokenPatterns();
+    std::vector<Token> tokens = lexer.tokenizeRustCode();
 
     std::cout << "--- Tokens from " << filePath << " ---" << std::endl;
     for (const auto& token : tokens) {
