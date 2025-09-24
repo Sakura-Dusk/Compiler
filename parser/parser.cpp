@@ -1,362 +1,301 @@
-//
-// Created by Sakura on 25-9-17.
-//
-
 #include "parser.h"
-#include "../lexer.h"
-#include <memory>
-#include<optional>
-#include <utility>
 
-#include "../AST/node/expression.h"
-#include "../AST/node/Literal_Type.h"
-#include "../AST/node/parser_type.h"
-#include "../AST/node/patterns.h"
+Parser::Parser():lexer("") {}
 
-Parser::Parser():token_pos(0){}
-Parser::Parser(std::vector<Token> tokens) : tokens(move(tokens)), token_pos(0) {}
+Parser::Parser(const std::string &code) : lexer(code) {}
 
-struct ShortandSelf {
-    bool have_ref;
-    bool is_mut;
-
-    ShortandSelf() : have_ref(false), is_mut(false) {}
-};
-
-struct TypedSelf {
-    bool is_mut;
-    std::shared_ptr<TypeNode> type;
-
-    TypedSelf() : is_mut(false) {}
-    ~TypedSelf() = default;
-};
-
-struct SelfParam {
-    bool is_shortandself;
-    std::optional<ShortandSelf> shortandself;
-    std::optional<TypedSelf> typedself;
-
-    SelfParam() : is_shortandself(false), typedself() {}
-};
-
-struct FunctionParam {
-    std::shared_ptr<Pattern> pattern;
-    std::shared_ptr<TypeNode> type;
-
-    FunctionParam(std::shared_ptr<Pattern> pattern, std::shared_ptr<TypeNode> type) : pattern(move(pattern)), type(move(type)) {}
-};
-
-struct FunctionParameters {
-    std::optional<SelfParam> selfparam;
-    std::vector<FunctionParam> params;
-};
-
-class FunctionItem : public BasicNode {
-public:
-    std::string Identifier;
-    std::optional<FunctionParameters> function_parameters;
-    std::optional<std::shared_ptr<TypeNode>> return_type;
-    std::optional<BlockExpression> block_expression;
-
-    FunctionItem(std::string Identifier, std::optional<FunctionParameters> function_parameters, std::optional<std::shared_ptr<TypeNode>> return_type, std::optional<BlockExpression> block_expression) : Identifier(std::move(Identifier)), function_parameters(std::move(function_parameters)), return_type(std::move(return_type)), block_expression(std::move(block_expression)) {}
-
-    void accept(SemanticAnalyzer &visitor) override {
-        visitor.visit(*this);
-    }
-};
-
-std::optional<ShortandSelf> parser_Shortandself(const std::vector<Token>& tokens, int &pos) {
-    if (pos >= tokens.size()) return std::nullopt;
-    auto now_token = tokens[pos];
-    ShortandSelf shortandself;
-    if (now_token.type == TokenType::Operator && now_token.value == "&") {
-        shortandself.have_ref = true;
-        pos++;
-        if (pos >= tokens.size()) return std::nullopt;
-        now_token = tokens[pos];
-    }
-    if (now_token.type == TokenType::Keyword && now_token.value == "mut") {
-        shortandself.is_mut = true;
-        pos++;
-        if (pos >= tokens.size()) return std::nullopt;
-        now_token = tokens[pos];
-    }
-    if (now_token.type == TokenType::Keyword && now_token.value == "self") {
-        pos++;
-        return shortandself;
-    }
-    return std::nullopt;
+AstNode* Parser::work() {
+    const auto node = new AstNode();
+    parser_program(node);
+    return node;
 }
 
-std::optional<PathIdentSegment> parser_PathIdentSegment(const std::vector<Token>& tokens, int &pos) {
-    if (pos >= tokens.size()) return std::nullopt;
-    const auto& now_token = tokens[pos];
-    if (now_token.type == TokenType::Keyword && now_token.value == "self") {
-        pos++;
-        return PathIdentSegment(true, false, "");
-    }
-    if (now_token.type == TokenType::Keyword && now_token.value == "Self") {
-        pos++;
-        return PathIdentSegment(false, true, "");
-    }
-    if (now_token.type == TokenType::Identifier) {
-        pos++;
-        return PathIdentSegment(false, false, now_token.value);
-    }
-    return std::nullopt;
+void Parser::parser_program(AstNode *node) {
+    node->type = AstNodetype::Program;
+    while (lexer.peek_next_token().type != TokenType::Unknown) parser_Item(node);
+    if (!lexer.is_End()) throw;
 }
 
-//Start Expression Parser
-
-std::optional<std::shared_ptr<Expression>> parser_Expression(const std::vector<Token>& tokens, int &pos) {
-    if (pos >= tokens.size()) return std::nullopt;
-    
+void Parser::parser_Item(AstNode *node) {
+    auto token = lexer.peek_next_token();
+    if (token.type != TokenType::Keyword) throw;
+    if (token.value == "fn") {//function
+        auto new_node = new AstNode;
+        node->children.push_back(new_node);
+        parser_Function(new_node);
+    }
+    else if (token.value == "struct") {
+        auto new_node = new AstNode;
+        node->children.push_back(new_node);
+        parser_Struct(new_node);
+    }
+    else if (token.value == "enum") {
+        auto new_node = new AstNode;
+        node->children.push_back(new_node);
+        parser_Enumeration(new_node);
+    }
+    else if (token.value == "const") {
+        auto new_node = new AstNode;
+        node->children.push_back(new_node);
+        parser_ConstantItem(new_node);
+    }
+    else if (token.value == "trait") {
+        auto new_node = new AstNode;
+        node->children.push_back(new_node);
+        parser_Trait(new_node);
+    }
+    else if (token.value == "impl") {
+        auto new_node = new AstNode;
+        node->children.push_back(new_node);
+        parser_Implementation(new_node);
+    }
+    else throw;
 }
 
-//End Expression Parser
+void Parser::parser_Function(AstNode *node) {
+    node->type = AstNodetype::Function;
 
-std::optional<std::shared_ptr<TypeNode>> parser_Typenode(const std::vector<Token>& tokens, int &pos) {
-    if (pos >= tokens.size()) return std::nullopt;
-    auto now_token = tokens[pos];
-    if (now_token.type == TokenType::Punctuation && now_token.value == "(") {//UnitType
-        pos++;
-        if (pos >= tokens.size()) return std::nullopt;
-        now_token = tokens[pos];
-        if (now_token.type == TokenType::Punctuation && now_token.value == ")") {
-            pos++;
-            std::shared_ptr<TypeNode> unit_type = std::make_shared<UnitType>();
-            return unit_type;
-        }
-        return std::nullopt;
-    }
-    if (now_token.type == TokenType::Punctuation && now_token.value == "[") {//ArrayType
-        pos++;
-        std::optional<std::shared_ptr<TypeNode>> return_type = parser_Typenode(tokens, pos);
-        if (return_type == std::nullopt) return std::nullopt;
-        if (pos >= tokens.size()) return std::nullopt;
-        now_token = tokens[pos];
-        if (now_token.type == TokenType::Punctuation && now_token.value == ";") {
-            pos++;
-            std::optional<std::shared_ptr<Expression>> expression = parser_Expression(tokens, pos);
-            if (expression == std::nullopt) return std::nullopt;
+    lexer.expect({TokenType::Keyword, "fn"});
+    node->value = lexer.expect(TokenType::Identifier).value;
 
-            if (pos >= tokens.size()) return std::nullopt;
-            now_token = tokens[pos];
-            if (now_token.type == TokenType::Punctuation && now_token.value == "]") {
-                pos++;
-                return std::make_shared<ArrayType>(return_type.value(), expression.value());
-            }
-        }
-        return std::nullopt;//not done parser_expression yet!!!!!!!!!!!!
+    //FunctionParameters
+    lexer.expect({TokenType::Punctuation, "("});
+    auto *new_node = new AstNode;
+    parser_FunctionParameters(new_node);
+    node->children.push_back(new_node);
+    lexer.expect({TokenType::Punctuation, ")"});
+
+    //FunctionReturnType
+    auto token = lexer.peek_next_token();
+    new_node = new AstNode;
+    if (token == (Token){TokenType::Operator, "->"}) {
+        lexer.get_next_token();
+        parser_Type(new_node);
     }
-    if (now_token.type == TokenType::Operator && now_token.value == "&") {//ReferenceType
-        pos++;
-        if (pos >= tokens.size()) return std::nullopt;
-        now_token = tokens[pos];
-        bool is_mut = false;
-        if (now_token.type == TokenType::Keyword && now_token.value == "mut") {
-            is_mut = true;
-            pos++;
-            if (pos >= tokens.size()) return std::nullopt;
-        }
-        std::optional<std::shared_ptr<TypeNode>> return_type = parser_Typenode(tokens, pos);
-        if (return_type == std::nullopt) return std::nullopt;
-        return std::make_shared<ReferenceType>(is_mut, return_type.value());
+    else {
+        new_node->type = AstNodetype::Type;
+        new_node->value = "()";
     }
-    //TypePath
-    std::optional<PathIdentSegment> segment = parser_PathIdentSegment(tokens, pos);
-    if (segment == std::nullopt) return std::nullopt;
-    if (pos < tokens.size()) {
-        now_token = tokens[pos];
-        if (now_token.type == TokenType::Operator && now_token.value == "::") {
-            pos++;
-            std::optional<PathIdentSegment> true_segment = parser_PathIdentSegment(tokens, pos);
-            if (true_segment == std::nullopt) return std::nullopt;
-            return std::make_shared<TypePath>(true_segment.value(), true, segment.value());
-        }
+    node->children.push_back(new_node);
+
+    //BlockExpression or ;
+    token = lexer.peek_next_token();
+    if (token == (Token){TokenType::Punctuation, ";"}) {
+        lexer.get_next_token();
     }
-    return std::make_shared<TypePath>(segment.value(), false, PathIdentSegment());
+    else {
+        lexer.expect({TokenType::Punctuation, "{"});
+        new_node = new AstNode;
+        parser_Statements(new_node);
+        node->children.push_back(new_node);
+        lexer.expect({TokenType::Punctuation, "}"});
+    }
 }
 
-std::optional<TypedSelf> parser_Typedself(const std::vector<Token>& tokens, int &pos) {
-    if (pos >= tokens.size()) return std::nullopt;
-    auto now_token = tokens[pos];
-    TypedSelf typedself;
-    if (now_token.type == TokenType::Keyword && now_token.value == "mut") {
-        typedself.is_mut = true;
-        pos++;
-        if (pos >= tokens.size()) return std::nullopt;
+void Parser::parser_Struct(AstNode *node) {
+    node->type = AstNodetype::Struct;
+
+    lexer.expect({TokenType::Keyword, "struct"});
+    node->value = lexer.expect(TokenType::Identifier).value;
+
+    auto new_node = new AstNode;
+    new_node->type = AstNodetype::Parameters;
+    new_node->children.push_back(new_node);
+
+    auto token = lexer.peek_next_token();
+    if (token == (Token){TokenType::Punctuation, ";"}) {
+        lexer.get_next_token();
     }
-    if (now_token.type == TokenType::Keyword && now_token.value == "self") {
-        pos++;
-        if (pos >= tokens.size()) return std::nullopt;
-        now_token = tokens[pos];
-        if (now_token.type == TokenType::Punctuation && now_token.value == ":") {
-            pos++;
-            std::optional<std::shared_ptr<TypeNode>> literal_type = parser_Typenode(tokens, pos);
-            if (literal_type == std::nullopt) return std::nullopt;
-            typedself.type = literal_type.value();
-            return typedself;
-        }
+    else {
+        lexer.expect({TokenType::Punctuation, "{"});
+        parser_Parameters(new_node);
+        lexer.expect({TokenType::Punctuation, "}"});
     }
-    return std::nullopt;
 }
 
+void Parser::parser_Enumeration(AstNode *node) {
+    node->type = AstNodetype::Enumeration;
 
-std::optional<SelfParam> parser_SelfParam(const std::vector<Token>& tokens, int &pos) {
-    SelfParam selfparam;
-    int shortandself_pos = pos;
-    selfparam.shortandself = parser_Shortandself(tokens, shortandself_pos);
-    int typedself_pos = pos;
-    selfparam.typedself = parser_Typedself(tokens, typedself_pos);
-    if (selfparam.typedself == std::nullopt && selfparam.shortandself == std::nullopt) return std::nullopt;
-    if (selfparam.typedself != std::nullopt && selfparam.shortandself != std::nullopt) {
-        if (shortandself_pos < typedself_pos) selfparam.shortandself = std::nullopt;
-            else selfparam.typedself = std::nullopt;
+    lexer.expect({TokenType::Keyword, "enum"});
+    auto new_node = new AstNode;
+    new_node->type = AstNodetype::Identifier;
+    new_node->value = lexer.expect(TokenType::Identifier).value;
+    node->children.push_back(new_node);
+
+    auto node_items = new AstNode;
+    node_items->type = AstNodetype::Enumeration_Items;
+    node->children.push_back(node_items);
+    lexer.expect({TokenType::Punctuation, "{"});
+
+    bool is_comma = true;
+    while (lexer.peek_next_token() != (Token){TokenType::Punctuation, "}"}) {
+        if (is_comma == false) throw;
+        is_comma = false;
+        new_node = new AstNode;
+        new_node->type = AstNodetype::Identifier;
+        new_node->value = lexer.expect(TokenType::Identifier).value;
+        node_items->children.push_back(new_node);
+
+        if (lexer.peek_next_token() == (Token){TokenType::Punctuation, ","}) {
+            is_comma = true;
+            lexer.get_next_token();
+        }
     }
-    pos = std::max(shortandself_pos, typedself_pos);
-    if (selfparam.shortandself != std::nullopt) selfparam.is_shortandself = true;
-    return selfparam;
+
+    lexer.expect({TokenType::Punctuation, "}"});
 }
 
-std::optional<std::shared_ptr<Pattern>> parser_Pattern(const std::vector<Token>& tokens, int &pos) {
-    if (pos >= tokens.size()) return std::nullopt;
-    auto now_token = tokens[pos];
-    if (now_token.type == TokenType::Operator && now_token.value == "_") {//WildcardPattern
-        pos++;
-        return std::make_shared<WildcardPattern>();
+void Parser::parser_ConstantItem(AstNode *node) {
+   node->type = AstNodetype::ConstantItem;
+
+    lexer.expect({TokenType::Keyword, "const"});
+    node->value = lexer.expect(TokenType::Identifier).value;
+
+    lexer.expect({TokenType::Punctuation, ":"});
+    auto new_node = new AstNode;
+    parser_Type(new_node);
+    node->children.push_back(new_node);
+
+    if (lexer.peek_next_token() == (Token){TokenType::Punctuation, ";"}) {
+        lexer.get_next_token();
+        return ;
     }
-    if (now_token.type == TokenType::Operator && (now_token.value == "&" || now_token.value == "&&")) {//ReferencePattern
-        bool double_ref = now_token.value == "&&";
-        pos++;
-        if (pos >= tokens.size()) return std::nullopt;
-        now_token = tokens[pos];
-        if (now_token.type == TokenType::Keyword && now_token.value == "mut") {
-            pos++;
-            if (pos >= tokens.size()) return std::nullopt;
-            auto pattern = parser_Pattern(tokens, pos);
-            if (pattern == std::nullopt) return std::nullopt;
-            return std::make_shared<ReferencePattern>(double_ref, true, pattern.value());
+
+    lexer.expect({TokenType::Operator, "="});
+    new_node = new AstNode;
+    parser_Expression(new_node);
+    node->children.push_back(new_node);
+    lexer.expect({TokenType::Punctuation, ";"});
+}
+
+void Parser::parser_Trait(AstNode *node) {
+    node->type = AstNodetype::Trait;
+    lexer.expect({TokenType::Keyword, "trait"});
+    node->value = lexer.expect(TokenType::Identifier).value;
+
+    lexer.expect({TokenType::Punctuation, "{"});
+    auto new_node = new AstNode;
+    node->children.push_back(new_node);
+    parser_AssociatedItem(new_node);
+    lexer.expect({TokenType::Punctuation, "}"});
+}
+
+void Parser::parser_Implementation(AstNode *node) {
+    node->type = AstNodetype::Implementation;
+    lexer.expect({TokenType::Keyword, "impl"});
+
+    auto new_node = new AstNode;
+    bool is_Identifier = (lexer.peek_next_token().type == TokenType::Identifier);
+    node->children.push_back(new_node);
+    parser_Type(new_node);
+
+    if (lexer.peek_next_token() == (Token){TokenType::Keyword, "for"}) {
+        if (is_Identifier == false) throw;
+        lexer.get_next_token();
+        new_node = new AstNode;
+        node->children.push_back(new_node);
+        parser_Type(new_node);
+    }
+
+    lexer.expect({TokenType::Punctuation, "{"});
+    new_node = new AstNode;
+    node->children.push_back(new_node);
+    parser_AssociatedItem(new_node);
+    lexer.expect({TokenType::Punctuation, "}"});
+}
+
+void Parser::parser_AssociatedItem(AstNode *node) {
+    node->type = AstNodetype::AssociatedItem;
+    while (lexer.peek_next_token() != (Token){TokenType::Punctuation, "}"}) {
+        auto token = lexer.peek_next_token();
+        if (token.type != TokenType::Identifier) throw;
+        if (token.value == "const") {
+            auto new_node = new AstNode;
+            node->children.push_back(new_node);
+            parser_ConstantItem(new_node);
         }
-        else {
-            auto pattern = parser_Pattern(tokens, pos);
-            if (pattern == std::nullopt) return std::nullopt;
-            return std::make_shared<ReferencePattern>(double_ref, false, pattern.value());
+        else if (token.value == "fn") {
+            auto new_node = new AstNode;
+            node->children.push_back(new_node);
+            parser_Function(new_node);
         }
+        else throw;
     }
-    //IdentifierPattern
-    bool have_ref = false, is_mut = false;
-    if (now_token.type == TokenType::Keyword && now_token.value == "ref") {
-        have_ref = true;
-        pos++;
-        if (pos >= tokens.size()) return std::nullopt;
-        now_token = tokens[pos];
+}
+
+void Parser::parser_FunctionParameters(AstNode *node) {
+    node->type = AstNodetype::FunctionParameters;
+
+    auto token = lexer.peek_next_token();
+    bool amp = false, is_mut = false;
+    if (token == (Token){TokenType::Operator, "&"}) {
+        lexer.get_next_token();
+        amp = true;
+        token = lexer.peek_next_token();
     }
-    if (now_token.type == TokenType::Keyword && now_token.value == "mut") {
+    if (token == (Token){TokenType::Keyword, "mut"}) {
+        lexer.get_next_token();
         is_mut = true;
-        pos++;
-        if (pos >= tokens.size()) return std::nullopt;
-        now_token = tokens[pos];
+        token = lexer.peek_next_token();
     }
-    if (now_token.type != TokenType::Identifier) return std::nullopt;
-    return std::make_shared<IdentifierPattern>(have_ref, is_mut, now_token.value);
-}
 
-std::optional<FunctionParam> parser_FunctionParam(const std::vector<Token>& tokens, int &pos) {
-    std::optional<std::shared_ptr<Pattern>> pattern = parser_Pattern(tokens, pos);
-    if (pattern == std::nullopt) return std::nullopt;
-    if (pos >= tokens.size()) return std::nullopt;
-    auto now_token = tokens[pos];
-    if (now_token.type != TokenType::Punctuation || now_token.value != ":") return std::nullopt;
-    pos++;
-    if (pos >= tokens.size()) return std::nullopt;
-    now_token = tokens[pos];
-    std::optional<std::shared_ptr<TypeNode>> type = parser_Typenode(tokens, pos);
-    if (type == std::nullopt) return std::nullopt;
-    return FunctionParam(pattern.value(), type.value());
-}
+    bool is_comma = true;
+    if (token == (Token){TokenType::Keyword, "self"}) {
+        lexer.get_next_token();
+        token = lexer.peek_next_token();
 
-void Parser::parser_program(std::shared_ptr<ProgramNode> root) {
-    root->type = Program;
+        auto new_node = new AstNode;
+        new_node->type = AstNodetype::self;
+        node->children.push_back(new_node);
+        if (amp == true) {
+            auto amp_node = new AstNode;
+            amp_node->type = AstNodetype::Amp;
+            new_node->children.push_back(amp_node);
+        }
+        if (is_mut == true) {
+            auto mut_node = new AstNode;
+            mut_node->type = AstNodetype::Mut;
+            new_node->children.push_back(mut_node);
+        }
 
-    while (token_pos < tokens.size()) {
-        auto token = tokens[token_pos];
-
-        if (token.type == TokenType::Keyword && token.value == "fn") {
-            if (token_pos + 1 >= tokens.size()) throw;
-            token_pos++;
-            auto now_token = tokens[token_pos];
-            if (now_token.type != TokenType::Identifier) throw ;
-            std::string identifier = now_token.value;
-
-            if (token_pos + 1 >= tokens.size()) throw;
-            token_pos++;
-            now_token = tokens[token_pos];
-            if (now_token.type != TokenType::Punctuation && now_token.value != "(") throw ;
-
-            std::optional<SelfParam> self_param;
-            std::vector<FunctionParam> params;
-            bool first = true;
-
-            bool last_douhao = true;
-            token_pos++;
-            if (token_pos >= tokens.size()) throw;
-            now_token = tokens[token_pos];
-            while (now_token.type != TokenType::Punctuation || now_token.value != ")") {
-                if (now_token.type == TokenType::Punctuation && now_token.value == ",") {
-                    if (last_douhao) throw;
-                    last_douhao = true;
-                    token_pos++;
-                    if (token_pos >= tokens.size()) throw;
-                    now_token = tokens[token_pos];
-                    continue;
-                }
-                if (last_douhao == false) throw;
-                last_douhao = false;
-
-                int selfparam_pos = token_pos;
-                if (first) {
-                    self_param = parser_SelfParam(tokens, selfparam_pos);
-                    first = false;
-                    if (self_param != std::nullopt) {
-                        token_pos = selfparam_pos;
-                        if (token_pos >= tokens.size()) throw;
-                        now_token = tokens[token_pos];
-                        continue;
-                    }
-                }
-                auto function_param = parser_FunctionParam(tokens, token_pos);
-                if (function_param == std::nullopt) throw;
-                params.push_back(function_param.value());
-                if (token_pos >= tokens.size()) throw;
-                now_token = tokens[token_pos];
-            }
-            FunctionParameters function_params(self_param, params);
-
-            //next is FunctionReturnType
-            if (token_pos >= tokens.size()) throw;
-            now_token = tokens[token_pos];
-            std::optional<std::shared_ptr<TypeNode>> type = std::nullopt;
-            if (now_token.type == TokenType::Operator || now_token.value == "->") {
-                token_pos++;
-                type = parser_Typenode(tokens, token_pos);
-                if (type == std::nullopt) throw;
-            }
-
-            //next is BlockExpression
-            if (token_pos >= tokens.size()) throw;
-            now_token = tokens[token_pos];
-            std::optional<BlockExpression> block = std::nullopt;
-            if (now_token.type == TokenType::Punctuation && now_token.value == ";") {
-                token_pos++;
-            }
-            else {
-                block = parser_BlockExpression(tokens, token_pos);
-                if (block == std::nullopt) throw;
-            }
-
-            auto function_item = std::make_shared<FunctionItem>(identifier, function_params, type, block);
-            root->statements.push_back(function_item);
+        is_comma = false;
+        if (token == (Token){TokenType::Punctuation, ","}) {
+            lexer.get_next_token();
+            is_comma = true;
+            token = lexer.peek_next_token();
         }
     }
+
+    is_mut = false;
+    if (token == (Token){TokenType::Keyword, "mut"}) {
+        lexer.get_next_token();
+        is_mut = true;
+        token = lexer.peek_next_token();
+    }
+    while (token.type == TokenType::Identifier) {
+        if (is_comma == false) throw;
+        is_comma = false;
+
+        auto new_node = new AstNode;
+        parser_TypedIdentifier(new_node, is_mut);
+        node->children.push_back(new_node);
+
+        token = lexer.peek_next_token();
+        if (token == (Token){TokenType::Punctuation, ","}) {
+            lexer.get_next_token();
+            is_comma = true;
+            token = lexer.peek_next_token();
+        }
+
+        is_mut = false;
+        if (token == (Token){TokenType::Keyword, "mut"}) {
+            lexer.get_next_token();
+            is_mut = false;
+            token = lexer.peek_next_token();
+        }
+    }
+}
+
+void Parser::parser_TypedIdentifier(AstNode *node, bool is_mut) {
+
 }

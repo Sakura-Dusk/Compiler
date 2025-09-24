@@ -43,6 +43,10 @@ struct Token {
     std::string value;
     int number;
 
+    Token() : type(), number(0){}
+    Token(TokenType type, std::string value) : type(type), value(std::move(value)), number(0) {}
+    Token(TokenType type, std::string value, int number) : type(type), value(std::move(value)), number(number) {}
+
     bool operator==(const Token & token) const {
         return type == token.type && value == token.value;
     }

@@ -16,15 +16,17 @@ else()
     message(FATAL_ERROR "Boost not found! Please set BOOST_ROOT or install Boost.")
 endif()
 
-add_executable(Compiler main.cpp
+add_executable(Compiler
+        main.cpp
+        parser/parser.cpp
+        AST/node/basic.cpp
+
         AST/node/basic.h
         AST/node/expression.h
         AST/node/Literal_Type.h
         parser/parser.h
         AST/node/patterns.h
-#        parser.cpp
         AST/node/parser_type.h
-        parser/parser.cpp
 
 )
 
