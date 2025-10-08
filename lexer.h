@@ -21,7 +21,7 @@ enum class TokenType {
     Unknown
 };
 
-std::string tokenTypeToString(TokenType type) {
+inline std::string tokenTypeToString(TokenType type) {
     switch (type) {
         case TokenType::Keyword: return "Keyword";
         case TokenType::Identifier: return "Identifier";
@@ -85,7 +85,9 @@ class Lexer {
     }
 
 public:
-    Lexer(const std::string& code):code(code),now_pos(0),previous_token(){}
+    Lexer(const std::string& code):code(code),now_pos(0),previous_token() {
+        defineRustTokenPatterns();
+    }
 
     void defineRustTokenPatterns() {
         patterns.push_back({TokenType::Comment, std::regex(R"(\/\/.*)"), "// Single-line comment"});
@@ -124,10 +126,10 @@ public:
             patterns.push_back({TokenType::Keyword, std::regex(R"(\b)" + keyword + R"(\b)"), "Keyword: " + keyword});
         }
 
-        patterns.push_back({TokenType::Operator, std::regex(R"(->|=>|\.\.|:?)"), "Operator: ->, =>, ..?, etc."});
+        patterns.push_back({TokenType::Operator, std::regex(R"(->|=>|\.\.)"), "Operator: ->, =>, ..?, etc."});
         patterns.push_back({TokenType::Operator, std::regex(R"(::|_)"), "Operator: ::,_"});
         patterns.push_back({TokenType::Operator, std::regex(R"(==|!=|<=|>=|\+=|-=|\*=|/=|%=|&&|\|\||<<|>>|=)"), "Operator: ==, !=, etc."});
-        patterns.push_back({TokenType::Operator, std::regex(R"([+\-*\/%&|^!~<>] )"), "Operator: +, -, *, /, etc."});
+        patterns.push_back({TokenType::Operator, std::regex(R"([-+*\/%&|^!~<>])"), "Operator: +, -, *, /, etc."});
         patterns.push_back({TokenType::Punctuation, std::regex(R"([{}();.,:\[\]])"), "Punctuation: {}, ();,."});
 
         patterns.push_back({TokenType::Identifier, std::regex(R"([a-zA-Z_][a-zA-Z0-9_]*)"), "Identifier"});
@@ -143,7 +145,16 @@ public:
         int old_pos = now_pos;
         TokenType match_type;
         std::string matched_value;
-        if (match(code, now_pos, match_type, matched_value)) return Token(match_type, matched_value, old_pos);
+        while (true) {
+            if (!match(code, now_pos, match_type, matched_value)) break;
+            if (match_type == TokenType::Comment) {
+                skip_space(code, now_pos);
+                old_pos = now_pos;
+                continue;
+            }
+            return Token(match_type, matched_value, old_pos);
+        }
+        // if (match(code, now_pos, match_type, matched_value)) return Token(match_type, matched_value, old_pos);
 
         now_pos++;
         return previous_token = Token(TokenType::Unknown, "Unknown char", now_pos - 1);
@@ -157,7 +168,16 @@ public:
         int tmp_pos = now_pos;
         TokenType match_type;
         std::string matched_value;
-        if (match(code, tmp_pos, match_type, matched_value)) return Token(match_type, matched_value, now_pos);
+        while (true) {
+            if (!match(code, tmp_pos, match_type, matched_value)) break;
+            if (match_type == TokenType::Comment) {
+                skip_space(code, tmp_pos);
+                now_pos = tmp_pos;
+                continue;
+            }
+            return Token(match_type, matched_value, now_pos);
+        }
+        // if (match(code, tmp_pos, match_type, matched_value)) return Token(match_type, matched_value, now_pos);
 
         return Token(TokenType::Unknown, "Unknown char", now_pos);
     }
@@ -173,13 +193,13 @@ public:
 
     Token expect(const Token& token) {
         const auto cur_token = get_next_token();
-        if (cur_token != token) throw;
+        if (cur_token != token) throw std::runtime_error("RE");
         return cur_token;
     }
 
     Token expect(const TokenType& type) {
         const auto cur_token = get_next_token();
-        if (cur_token.type != type) throw;
+        if (cur_token.type != type) throw std::runtime_error("RE");
         return cur_token;
     }
 

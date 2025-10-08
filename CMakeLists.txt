@@ -22,11 +22,7 @@ add_executable(Compiler
         AST/node/basic.cpp
 
         AST/node/basic.h
-        AST/node/expression.h
-        AST/node/Literal_Type.h
         parser/parser.h
-        AST/node/patterns.h
-        AST/node/parser_type.h
 
 )
 

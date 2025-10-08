@@ -7,7 +7,7 @@
 #include "parser/parser.h"
 
 int main() {
-    std::string filePath = "../samples/temp.rs";
+    std::string filePath = "../testcases/basic/basic5.txt";
     std::ifstream inputFile(filePath);
 
     if (!inputFile.is_open()) {
@@ -19,25 +19,31 @@ int main() {
                          std::istreambuf_iterator<char>());
     inputFile.close();
 
-    Lexer lexer(rustCode);
-    lexer.defineRustTokenPatterns();
-    std::vector<Token> tokens = lexer.tokenizeRustCode();
+    {//Lexer show
+        Lexer lexer(rustCode);
+        std::vector<Token> tokens = lexer.tokenizeRustCode();
 
-    std::cout << "--- Tokens from " << filePath << " ---" << std::endl;
-    for (const auto& token : tokens) {
-        std::cout << "Type: " << tokenTypeToString(token.type)
-                  << ", Value: \"" << token.value
-                  << "\", Pos: " << token.number << std::endl;
+        std::cout << "--- Tokens from " << filePath << " ---" << std::endl;
+        for (const auto& token : tokens) {
+            std::cout << "Type: " << tokenTypeToString(token.type)
+                      << ", Value: \"" << token.value
+                      << "\", Pos: " << token.number << std::endl;
 
-        if (token.type == TokenType::Unknown) {
-            std::cout << "Compile Error";
-            return 0;
+            if (token.type == TokenType::Unknown) {
+                std::cout << "Compile Error";
+                return 0;
+            }
         }
     }
 
-    auto parser = Parser(tokens);
+    auto parser = Parser(rustCode);
     try {
-        parser.work();
+        auto Ast_Tree = parser.work()->show_tree();
+        for (const auto& x: Ast_Tree) std::cout << x << std::endl;
+    }
+    catch (std::exception &e) {
+        std::cout << "Compile Error";
+        return 0;
     }
     catch (...) {
         std::cout << "Compile Error";
