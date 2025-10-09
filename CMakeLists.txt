@@ -17,12 +17,12 @@ else()
 endif()
 
 add_executable(Compiler
-        main.cpp
-        parser/parser.cpp
-        AST/node/basic.cpp
+        src/main.cpp
+        src/parser/parser.cpp
+        src/AST/node/basic.cpp
 
-        AST/node/basic.h
-        parser/parser.h
+        src/AST/node/basic.h
+        src/parser/parser.h
 
 )
 

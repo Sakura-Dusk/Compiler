@@ -50,6 +50,9 @@ struct Token {
     bool operator==(const Token & token) const {
         return type == token.type && value == token.value;
     }
+    bool operator!=(const Token &token) const {
+        return !(*this == token);
+    }
 };
 
 struct TokenPattern {
