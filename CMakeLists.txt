@@ -27,6 +27,7 @@ add_executable(Compiler
         src/semantic/semantic.h
 )
 
+enable_testing()
 add_subdirectory(testcases)
 
 # 将 Boost.Regex 库链接到你的可执行文件
