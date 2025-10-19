@@ -47,6 +47,9 @@ for jf in jsons:
         rel_path = jf.parent.relative_to(".")
         suite = rel_path.parts[0].replace("-", "")
         case  = rel_path.name
+
+        # if case[0:5] != "array" : continue
+
         code  = data.get("compileexitcode", 0)
         inp   = f"{case}.in"
         expect = "EXPECT_NO_THROW" if code == 0 else "EXPECT_ANY_THROW"
@@ -60,12 +63,13 @@ for jf in jsons:
 
 OUT_CPP.write_text(R"""#include "../src/parser/parser.h"
 #include "../src/AST/node/basic.h"
+#include "../src/semantic/semantic_analyzer.h"
 #include<iostream>
 #include <gtest/gtest.h>
 
 std::string openFile(std::string path)
 {
-    path="../testcases/testcases/"+path;
+    path="../../testcases/testcases/"+path;
     freopen(path.c_str(),"r",stdin);
     int in;
     std::string code;
@@ -82,6 +86,18 @@ void runParser(std::string path)
     const auto code=openFile(path);
     Parser(code).work();
 }
+
+void runSematic(std::string path)
+{
+    const auto code=openFile(path);
+    SemanticAnalyzer semantic_analyzer(Parser(code).work());
+    semantic_analyzer.analyze();
+    if (semantic_analyzer.has_errors()) {
+      	std::cout << "tell me tell me" << std::endl;
+        throw std::runtime_error("RE");
+    }
+}
+
 """
                    +("\n".join(blocks.values())), encoding="utf8")
 print(f">>> 已生成 {OUT_CPP}  （共 {len(blocks)} 条 TEST）")

@@ -7,7 +7,9 @@
 #include "parser/parser.h"
 
 int main() {
-    std::string filePath = "../testcases/basic/basic5.txt";
+    // std::cout << "what the ???\n";
+
+    std::string filePath = "testcases/testcases/misc34.in";
     std::ifstream inputFile(filePath);
 
     if (!inputFile.is_open()) {
@@ -19,22 +21,22 @@ int main() {
                          std::istreambuf_iterator<char>());
     inputFile.close();
 
-    {//Lexer show
-        Lexer lexer(rustCode);
-        std::vector<Token> tokens = lexer.tokenizeRustCode();
-
-        std::cout << "--- Tokens from " << filePath << " ---" << std::endl;
-        for (const auto& token : tokens) {
-            std::cout << "Type: " << tokenTypeToString(token.type)
-                      << ", Value: \"" << token.value
-                      << "\", Pos: " << token.number << std::endl;
-
-            if (token.type == TokenType::Unknown) {
-                std::cout << "Compile Error";
-                return 0;
-            }
-        }
-    }
+    // {//Lexer show
+    //     Lexer lexer(rustCode);
+    //     std::vector<Token> tokens = lexer.tokenizeRustCode();
+    //
+    //     std::cout << "--- Tokens from " << filePath << " ---" << std::endl;
+    //     for (const auto& token : tokens) {
+    //         std::cout << "Type: " << tokenTypeToString(token.type)
+    //                   << ", Value: \"" << token.value
+    //                   << "\", Pos: " << token.number << std::endl;
+    //
+    //         if (token.type == TokenType::Unknown) {
+    //             std::cout << "Compile Error";
+    //             return 0;
+    //         }
+    //     }
+    // }
 
     auto parser = Parser(rustCode);
     try {

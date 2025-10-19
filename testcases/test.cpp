@@ -1,11 +1,12 @@
 #include "../src/parser/parser.h"
 #include "../src/AST/node/basic.h"
+#include "../src/semantic/semantic_analyzer.h"
 #include<iostream>
 #include <gtest/gtest.h>
 
 std::string openFile(std::string path)
 {
-    path="../testcases/testcases/"+path;
+    path="../../testcases/testcases/"+path;
     freopen(path.c_str(),"r",stdin);
     int in;
     std::string code;
@@ -22,6 +23,18 @@ void runParser(std::string path)
     const auto code=openFile(path);
     Parser(code).work();
 }
+
+void runSematic(std::string path)
+{
+    const auto code=openFile(path);
+    SemanticAnalyzer semantic_analyzer(Parser(code).work());
+    semantic_analyzer.analyze();
+    if (semantic_analyzer.has_errors()) {
+      	std::cout << "tell me tell me" << std::endl;
+        throw std::runtime_error("RE");
+    }
+}
+
 TEST(IR1, misc1) {
     EXPECT_NO_THROW(runParser("misc1.in"));
 }

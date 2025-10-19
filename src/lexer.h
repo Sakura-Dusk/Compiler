@@ -84,7 +84,7 @@ class Lexer {
     }
 
     void skip_space(const std::string& code, int &pos) {
-        while (pos < code.length() && isspace(code[pos])) pos++;
+        while (pos < code.length() && (isspace(code[pos]) || code[pos] == '\t' || code[pos] == '\r' || code[pos] == '\n')) pos++;
     }
 
 public:
@@ -101,8 +101,8 @@ public:
         patterns.push_back({TokenType::StringLiteral, std::regex(R"(b"(?:[^"\\]|\\.)*")"), "Byte string literal"});
         patterns.push_back({TokenType::StringLiteral, std::regex(R"(br(#*)\"[\s\S]*?\"\1)"), "Raw byte string literal"});
 
-        patterns.push_back({TokenType::CharLiteral, std::regex(R"(' (?:[^'\\]|\\.) ')"), "Character literal"});
-        patterns.push_back({TokenType::CharLiteral, std::regex(R"(b' (?:[^'\\]|\\.) ')"), "Byte literal"});
+        patterns.push_back({TokenType::CharLiteral, std::regex(R"('(?:[^'\\]|\\.)')"), "Character literal"});
+        patterns.push_back({TokenType::CharLiteral, std::regex(R"(b'(?:[^'\\]|\\.)')"), "Byte literal"});
 
         patterns.push_back({TokenType::FloatLiteral, std::regex(R"(\b\d+\.\d*(?:[eE][+-]?\d+)?(?:f32|f64)?\b)"), "Float literal"});
         patterns.push_back({TokenType::FloatLiteral, std::regex(R"(\b\.\d+(?:[eE][+-]?\d+)?(?:f32|f64)?\b)"), "Float literal (starting with dot)"});
@@ -123,7 +123,7 @@ public:
             "try",
             "gen",
 
-            "'static", "macro_rules", "raw", "safe", "union",//weak
+            // "'static", "macro_rules", "raw", "safe", "union",//weak
         };
         for (const auto& keyword : rustKeywords) {
             patterns.push_back({TokenType::Keyword, std::regex(R"(\b)" + keyword + R"(\b)"), "Keyword: " + keyword});
