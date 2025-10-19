@@ -61,6 +61,77 @@ std::vector<std::string> AstNode::show_node() const {
     return res;
 }
 
+// NodeType implementation
+NodeType::NodeType() : type(NodeTypeType::Unknown), inside_type(nullptr), self_type(nullptr),
+                       is_mutable(false), item_length(0), FM_id(0), scope(nullptr) {}
+
+NodeType::NodeType(NodeTypeType t) : type(t), inside_type(nullptr), self_type(nullptr),
+                                    is_mutable(false), item_length(0), FM_id(0), scope(nullptr) {}
+
+std::string NodeType::show() {
+    switch (type) {
+        case NodeTypeType::I32: return "i32";
+        case NodeTypeType::U32: return "u32";
+        case NodeTypeType::Isize: return "isize";
+        case NodeTypeType::Usize: return "usize";
+        case NodeTypeType::AllInt: return "int";
+        case NodeTypeType::IInt: return "int";
+        case NodeTypeType::UInt: return "uint";
+        case NodeTypeType::Bool: return "bool";
+        case NodeTypeType::Char: return "char";
+        case NodeTypeType::Str: return "str";
+        case NodeTypeType::Unit: return "()";
+        case NodeTypeType::Struct: return "struct " + SE_name;
+        case NodeTypeType::Enum: return "enum " + SE_name;
+        case NodeTypeType::Array: {
+            std::string result = "[";
+            if (inside_type) result += inside_type->show();
+            result += "; " + std::to_string(item_length) + "]";
+            return result;
+        }
+        case NodeTypeType::Function: return "function";
+        case NodeTypeType::Method: return "method";
+        case NodeTypeType::Type_of_Type: return "type";
+        case NodeTypeType::Amp: {
+            std::string result = "&";
+            if (inside_type) result += inside_type->show();
+            return result;
+        }
+        case NodeTypeType::Mut_Amp: {
+            std::string result = "&mut ";
+            if (inside_type) result += inside_type->show();
+            return result;
+        }
+        case NodeTypeType::Wildcard: return "_";
+        case NodeTypeType::Never: return "!";
+        case NodeTypeType::Unknown: return "unknown";
+        default: return "unknown";
+    }
+}
+
+bool NodeType::operator==(const NodeType& other) const {
+    if (type != other.type) {
+        return false;
+    }
+    
+    switch (type) {
+        case NodeTypeType::Array:
+            return item_length == other.item_length &&
+                   (inside_type && other.inside_type && *inside_type == *other.inside_type);
+        case NodeTypeType::Struct:
+        case NodeTypeType::Enum:
+            return SE_name == other.SE_name;
+        case NodeTypeType::Function:
+        case NodeTypeType::Method:
+            return FM_id == other.FM_id;
+        case NodeTypeType::Amp:
+        case NodeTypeType::Mut_Amp:
+            return inside_type && other.inside_type && *inside_type == *other.inside_type;
+        default:
+            return true;
+    }
+}
+
 std::vector<std::string> AstNode::show_tree() const {
     auto res = show_node();
     for (int i = 0; i < children.size(); i++) {
