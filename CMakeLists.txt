@@ -20,11 +20,14 @@ add_executable(Compiler
         src/main.cpp
         src/parser/parser.cpp
         src/AST/node/basic.cpp
+        src/semantic/semantic.cpp
 
         src/AST/node/basic.h
         src/parser/parser.h
-
+        src/semantic/semantic.h
 )
+
+add_subdirectory(testcases)
 
 # 将 Boost.Regex 库链接到你的可执行文件
 target_link_libraries(Compiler PUBLIC Boost::regex)
