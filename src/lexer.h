@@ -6,6 +6,7 @@
 #define LEXER_H
 
 #include <regex>
+#include <iostream>
 
 enum class TokenType {
     Keyword,
@@ -72,7 +73,7 @@ class Lexer {
         std::smatch m;
         value = "";
         for (const auto& pattern: patterns) {
-            if (std::regex_search(cur_str, m, pattern.regex) && m.position() == 0) {
+            if (std::regex_search(cur_str, m, pattern.regex, std::regex_constants::match_continuous) && m.position() == 0) {
                 if (value.length() < m.str().length()) {
                     value = m.str();
                     type = pattern.type;
@@ -141,6 +142,8 @@ public:
     }
 
     Token get_next_token() {
+        // auto start_time = clock();
+
         skip_space(code, now_pos);
 
         if (now_pos >= code.length()) return Token(TokenType::Unknown, "", code.length());
@@ -155,11 +158,19 @@ public:
                 old_pos = now_pos;
                 continue;
             }
+
+            // auto end_time = clock();
+            // std::cerr << "Lexer get_next_token time: " << double(end_time - start_time) / CLOCKS_PER_SEC << " seconds\n";
+
             return Token(match_type, matched_value, old_pos);
         }
         // if (match(code, now_pos, match_type, matched_value)) return Token(match_type, matched_value, old_pos);
 
         now_pos++;
+
+        // auto end_time = clock();
+        // std::cerr << "Lexer get_next_token time: " << double(end_time - start_time) / CLOCKS_PER_SEC << " seconds\n";
+
         return previous_token = Token(TokenType::Unknown, "Unknown char", now_pos - 1);
     }
 

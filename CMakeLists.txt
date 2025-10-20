@@ -3,6 +3,8 @@ project(Compiler)
 
 set(CMAKE_CXX_STANDARD 20)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
+
 find_package(Boost 1.70.0 REQUIRED COMPONENTS regex)
 
 if(Boost_FOUND)

@@ -20,8 +20,6 @@ void Parser::parser_program(AstNode *node) {
 void Parser::parser_Item(AstNode *node) {
     auto token = lexer.peek_next_token();
 
-    // std::cout << "parser_Item: " << token.value << std::endl;
-
     if (token.type != TokenType::Keyword) throw std::runtime_error("RE");
     if (token.value == "fn") {//function
         auto new_node = new AstNode;
@@ -104,7 +102,7 @@ void Parser::parser_Struct(AstNode *node) {
 
     auto new_node = new AstNode;
     new_node->type = AstNodetype::StructParameters;
-    new_node->children.push_back(new_node);
+    node->children.push_back(new_node);
 
     auto token = lexer.peek_next_token();
     if (token == (Token){TokenType::Punctuation, ";"}) {
