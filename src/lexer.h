@@ -105,9 +105,9 @@ public:
         patterns.push_back({TokenType::CharLiteral, std::regex(R"('(?:[^'\\]|\\.)')"), "Character literal"});
         patterns.push_back({TokenType::CharLiteral, std::regex(R"(b'(?:[^'\\]|\\.)')"), "Byte literal"});
 
-        patterns.push_back({TokenType::FloatLiteral, std::regex(R"(\b\d+\.\d*(?:[eE][+-]?\d+)?(?:f32|f64)?\b)"), "Float literal"});
-        patterns.push_back({TokenType::FloatLiteral, std::regex(R"(\b\.\d+(?:[eE][+-]?\d+)?(?:f32|f64)?\b)"), "Float literal (starting with dot)"});
-        patterns.push_back({TokenType::FloatLiteral, std::regex(R"(\b\d+(?:[eE][+-]?\d+)(?:f32|f64)?\b)"), "Float literal (exp only)"});
+        // patterns.push_back({TokenType::FloatLiteral, std::regex(R"(\b\d+\.\d*(?:[eE][+-]?\d+)?(?:f32|f64)?\b)"), "Float literal"});
+        // patterns.push_back({TokenType::FloatLiteral, std::regex(R"(\b\.\d+(?:[eE][+-]?\d+)?(?:f32|f64)?\b)"), "Float literal (starting with dot)"});
+        // patterns.push_back({TokenType::FloatLiteral, std::regex(R"(\b\d+(?:[eE][+-]?\d+)(?:f32|f64)?\b)"), "Float literal (exp only)"});
 
         patterns.push_back({TokenType::IntegerLiteral, std::regex(R"(\b(?:0x[0-9a-fA-F_]+|0o[0-7_]+|0b[01_]+|\d[0-9_]*)(?:u8|u16|u32|u64|u128|usize|i8|i16|i32|i64|i128|isize)?\b)"), "Integer literal"});
 
@@ -132,7 +132,7 @@ public:
 
         patterns.push_back({TokenType::Operator, std::regex(R"(->|=>|\.\.)"), "Operator: ->, =>, ..?, etc."});
         patterns.push_back({TokenType::Operator, std::regex(R"(::|_)"), "Operator: ::,_"});
-        patterns.push_back({TokenType::Operator, std::regex(R"(==|!=|<=|>=|\+=|-=|\*=|/=|%=|&&|\|\||<<|>>|=)"), "Operator: ==, !=, etc."});
+        patterns.push_back({TokenType::Operator, std::regex(R"(==|!=|<=|>=|\+=|-=|\*=|/=|%=|\^=|<<=|>>=|&=|\|=|&&|\|\||<<|>>|=)"), "Operator: ==, !=, etc."});
         patterns.push_back({TokenType::Operator, std::regex(R"([-+*\/%&|^!~<>])"), "Operator: +, -, *, /, etc."});
         patterns.push_back({TokenType::Punctuation, std::regex(R"([{}();.,:\[\]])"), "Punctuation: {}, ();,."});
 

@@ -9,7 +9,7 @@
 int main() {
     // std::cout << "what the ???\n";
     // return 0;
-    std::string filePath = "testcases/testcases/misc34.in";
+    std::string filePath = "testcases/testcases/comprehensive30.in";
     // std::string filePath = "temp.in";
     std::ifstream inputFile(filePath);
 

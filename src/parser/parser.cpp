@@ -209,8 +209,6 @@ void Parser::parser_Implementation(AstNode *node) {
 void Parser::parser_AssociatedItem(AstNode *node) {
     node->type = AstNodetype::AssociatedItem;
     while (lexer.peek_next_token() != (Token){TokenType::Punctuation, "}"}) {
-        // std::cout << "parser_AssociatedItem: " << lexer.peek_next_token().value << std::endl;
-
         auto token = lexer.peek_next_token();
         if (token.type != TokenType::Keyword) throw std::runtime_error("RE");
         if (token.value == "const") {
@@ -465,6 +463,7 @@ void Parser::parser_LetStatement(AstNode *node) {
 }
 
 void Parser::parser_Expression(AstNode *node, bool only_flag) {
+    auto tmp = lexer.peek_next_token().value;
     node->type = AstNodetype::Expression;
     node->children.push_back(pratt_Expression(0, only_flag));
 }
@@ -779,8 +778,9 @@ AstNode* Parser::pratt_Expression(int precedence, bool only_flag = false) {
             parser_Statements(block_node);
             lexer.expect((Token){TokenType::Punctuation, "}"});
             if (lexer.peek_next_token() != (Token){TokenType::Keyword, "else"}) {
-                if (only_flag) return root;
-                break;
+                return root;
+                // if (only_flag) return root;
+                // break;
             }
             continue;
         }
@@ -802,8 +802,9 @@ AstNode* Parser::pratt_Expression(int precedence, bool only_flag = false) {
             parser_Statements(block_node);
             lexer.expect((Token){TokenType::Punctuation, "}"});
 
-            if (only_flag) return root;
-            break;
+            return root;
+            // if (only_flag) return root;
+            // break;
         }
         else if (prefix_token == (Token){TokenType::Operator, "&"} || prefix_token == (Token){TokenType::Operator, "&&"}) {
             if (prefix_token == (Token){TokenType::Operator, "&&"}) {

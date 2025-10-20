@@ -47,7 +47,7 @@ fn main() {
     let mut xor: i32 = 0i32;
     let mut idx: usize = 0usize;
     while (idx < SIZE) {
-        xor ^= v[idx] * (idx as i32 + 3);
+        xor ^= v[idx] & (idx as i32 + 3);
         idx += 1;
     }
     let hold: i32 = xor;
