@@ -2,18 +2,16 @@
 #include "../src/AST/node/basic.h"
 #include "../src/semantic/semantic_analyzer.h"
 #include<iostream>
+#include <fstream>
 #include <gtest/gtest.h>
 
 std::string openFile(std::string path)
 {
-    path="../../testcases/testcases/"+path;
-    freopen(path.c_str(),"r",stdin);
-    int in;
-    std::string code;
-    while((in=std::cin.get())!=EOF)
-        code.push_back(static_cast<char>(in));
-    fclose(stdin);
-    std::cin.clear();
+    path="../testcases/testcases/"+path;
+    std::ifstream inputFile(path);
+    std::string code((std::istreambuf_iterator<char>(inputFile)),
+                     std::istreambuf_iterator<char>());
+    inputFile.close();
     code.push_back('\n');
     return code;
 }
@@ -30,7 +28,6 @@ void runSematic(std::string path)
     SemanticAnalyzer semantic_analyzer(Parser(code).work());
     semantic_analyzer.analyze();
     if (semantic_analyzer.has_errors()) {
-      	std::cout << "tell me tell me" << std::endl;
         throw std::runtime_error("RE");
     }
 }
@@ -48,7 +45,7 @@ TEST(semantic1, if11) {
     EXPECT_ANY_THROW(runParser("if11.in"));
 }
 TEST(semantic1, array8) {
-    EXPECT_ANY_THROW(runParser("array8.in"));
+    EXPECT_ANY_THROW(runSematic("array8.in"));
 }
 TEST(semantic1, basic4) {
     EXPECT_NO_THROW(runParser("basic4.in"));
@@ -93,7 +90,7 @@ TEST(semantic1, if7) {
     EXPECT_NO_THROW(runParser("if7.in"));
 }
 TEST(semantic1, array4) {
-    EXPECT_ANY_THROW(runParser("array4.in"));
+    EXPECT_ANY_THROW(runSematic("array4.in"));
 }
 TEST(semantic1, misc24) {
     EXPECT_NO_THROW(runParser("misc24.in"));
@@ -267,7 +264,7 @@ TEST(semantic1, loop5) {
     EXPECT_NO_THROW(runParser("loop5.in"));
 }
 TEST(semantic1, array6) {
-    EXPECT_ANY_THROW(runParser("array6.in"));
+    EXPECT_ANY_THROW(runSematic("array6.in"));
 }
 TEST(semantic1, loop3) {
     EXPECT_NO_THROW(runParser("loop3.in"));
@@ -507,7 +504,7 @@ TEST(semantic1, expr26) {
     EXPECT_ANY_THROW(runParser("expr26.in"));
 }
 TEST(semantic1, array7) {
-    EXPECT_ANY_THROW(runParser("array7.in"));
+    EXPECT_ANY_THROW(runSematic("array7.in"));
 }
 TEST(semantic1, autoref5) {
     EXPECT_NO_THROW(runParser("autoref5.in"));
@@ -567,7 +564,7 @@ TEST(semantic1, return7) {
     EXPECT_ANY_THROW(runParser("return7.in"));
 }
 TEST(semantic1, array5) {
-    EXPECT_ANY_THROW(runParser("array5.in"));
+    EXPECT_ANY_THROW(runSematic("array5.in"));
 }
 TEST(semantic1, misc48) {
     EXPECT_NO_THROW(runParser("misc48.in"));

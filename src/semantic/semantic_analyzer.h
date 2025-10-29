@@ -9,6 +9,10 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <memory>
+
+// 前向声明
+class SemanticVisitor;
 
 class SemanticError : public std::runtime_error {
 public:
@@ -23,25 +27,16 @@ class SemanticAnalyzer {
 private:
     AstNode* root;
     std::vector<Scope*> scope_stack;
+    std::unique_ptr<SemanticVisitor> visitor;
     
+    // Visitor pattern 的友元类声明
+    friend class SemanticVisitor;
+
+public:
     // 作用域管理
     void push_scope(AstNode* node);
     void pop_scope();
     Scope* current_scope();
-    
-    // 类型检查
-    NodeType* analyze_type(AstNode* type_node);
-    NodeType* analyze_expression(AstNode* expr_node);
-    void analyze_statement(AstNode* stmt_node);
-    void analyze_let_statement(AstNode* let_node);
-    void analyze_array_elements(AstNode* array_node, NodeType* expected_type);
-    
-    // 数组相关检查
-    void check_array_initialization(AstNode* let_node);
-    void check_array_index(AstNode* index_node);
-    void check_array_assignment(AstNode* assign_node);
-    int evaluate_array_length(AstNode* length_expr);
-    bool check_array_element_count(AstNode* array_elements, int expected_length);
     
     // 符号表操作
     void declare_variable(const std::string& name, NodeType* type, bool is_mutable, AstNode* node);
@@ -52,9 +47,9 @@ private:
     NodeType* get_array_element_type(NodeType* array_type);
     void report_error(const std::string& message, AstNode* node);
 
-public:
     SemanticAnalyzer();
     explicit SemanticAnalyzer(AstNode* ast_root);
+    ~SemanticAnalyzer();
     
     void analyze();
     void set_root(AstNode* ast_root);

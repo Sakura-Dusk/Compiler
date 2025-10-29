@@ -23,10 +23,12 @@ add_executable(Compiler
         src/parser/parser.cpp
         src/AST/node/basic.cpp
         src/semantic/semantic_analyzer.cpp
+        src/semantic/ast_visitor.cpp
 
         src/AST/node/basic.h
         src/parser/parser.h
-        src/semantic/semantic_analyzer.h)
+        src/semantic/semantic_analyzer.h
+        src/semantic/ast_visitor.h)
 
 enable_testing()
 add_subdirectory(testcases)

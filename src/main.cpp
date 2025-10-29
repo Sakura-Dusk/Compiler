@@ -5,52 +5,87 @@
 
 #include "lexer.h"
 #include "parser/parser.h"
+#include "semantic/semantic_analyzer.h"
 
 int main() {
-    // std::cout << "what the ???\n";
-    // return 0;
-    std::string filePath = "testcases/testcases/comprehensive30.in";
-    // std::string filePath = "temp.in";
-    std::ifstream inputFile(filePath);
+    std::vector<std::string> testFiles = {
+        "../testcases/testcases/array1.in",
+        "../testcases/testcases/array2.in",
+        "../testcases/testcases/array3.in",
+        "../testcases/testcases/array4.in",
+        "../testcases/testcases/array5.in",
+        "../testcases/testcases/array6.in",
+        "../testcases/testcases/array7.in",
+        "../testcases/testcases/array8.in",
+        
+        "../testcases/testcases/if1.in",
+        "../testcases/testcases/if2.in",
+        "../testcases/testcases/if3.in",
+        "../testcases/testcases/if4.in",
+        "../testcases/testcases/if5.in",
+        "../testcases/testcases/if6.in",
+        "../testcases/testcases/if7.in",
+        "../testcases/testcases/if8.in",
+        "../testcases/testcases/if9.in",
+        "../testcases/testcases/if10.in",
+        "../testcases/testcases/if11.in",
+        "../testcases/testcases/if12.in",
+        "../testcases/testcases/if13.in",
+        "../testcases/testcases/if14.in",
+        "../testcases/testcases/if15.in",
+    };
+    
+    for (const auto& filePath : testFiles) {
+        std::cout << "\n=== Testing " << filePath << " ===" << std::endl;
+        
+        std::ifstream inputFile(filePath);
+        if (!inputFile.is_open()) {
+            std::cerr << "Error: Could not open file " << filePath << std::endl;
+            continue;
+        }
 
-    if (!inputFile.is_open()) {
-        std::cerr << "Error: Could not open file " << filePath << std::endl;
-        return 1;
-    }
+        std::string rustCode((std::istreambuf_iterator<char>(inputFile)),
+                             std::istreambuf_iterator<char>());
+        inputFile.close();
 
-    std::string rustCode((std::istreambuf_iterator<char>(inputFile)),
-                         std::istreambuf_iterator<char>());
-    inputFile.close();
+        try {
+            // 词法分析
+            Lexer lexer(rustCode);
+            std::vector<Token> tokens = lexer.tokenizeRustCode();
 
-    // {//Lexer show
-    //     Lexer lexer(rustCode);
-    //     std::vector<Token> tokens = lexer.tokenizeRustCode();
-    //
-    //     std::cout << "--- Tokens from " << filePath << " ---" << std::endl;
-    //     for (const auto& token : tokens) {
-    //         std::cout << "Type: " << tokenTypeToString(token.type)
-    //                   << ", Value: \"" << token.value
-    //                   << "\", Pos: " << token.number << std::endl;
-    //
-    //         if (token.type == TokenType::Unknown) {
-    //             std::cout << "Compile Error";
-    //             return 0;
-    //         }
-    //     }
-    // }
+            bool hasLexError = false;
+            for (const auto& token : tokens) {
+                if (token.type == TokenType::Unknown) {
+                    std::cout << "Lexical Error in " << filePath << std::endl;
+                    hasLexError = true;
+                    break;
+                }
+            }
+            
+            if (hasLexError) continue;
 
-    auto parser = Parser(rustCode);
-    try {
-        auto Ast_Tree = parser.work()->show_tree();
-        for (const auto& x: Ast_Tree) std::cout << x << std::endl;
-    }
-    catch (std::exception &e) {
-        std::cout << "Compile Error";
-        return 0;
-    }
-    catch (...) {
-        std::cout << "Compile Error";
-        return 0;
+            // 语法分析
+            auto parser = Parser(rustCode);
+            AstNode* ast_root = parser.work();
+            
+            // 语义分析
+            SemanticAnalyzer semantic_analyzer(ast_root);
+            semantic_analyzer.analyze();
+            
+            if (semantic_analyzer.has_errors()) {
+                std::cout << "Semantic Errors in " << filePath << ":" << std::endl;
+                for (const auto& error : semantic_analyzer.get_errors()) {
+                    std::cout << "  " << error << std::endl;
+                }
+            } else {
+                std::cout << "Success: No semantic errors in " << filePath << std::endl;
+            }
+            
+        } catch (const std::exception& e) {
+            std::cout << "Compile Error in " << filePath << ": " << e.what() << std::endl;
+        } catch (...) {
+            std::cout << "Unknown Compile Error in " << filePath << std::endl;
+        }
     }
 
     return 0;
