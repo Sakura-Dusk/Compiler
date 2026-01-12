@@ -63,35 +63,68 @@ std::vector<std::string> AstNode::show_node() const {
 
 // NodeType implementation
 NodeType::NodeType() : type(NodeTypeType::Unknown), inside_type(nullptr), self_type(nullptr),
-                       is_mutable(false), item_length(0), FM_id(0), scope(nullptr) {}
+                       is_mutable(false), item_length(0), FM_id(0), field(nullptr) {}
 
-NodeType::NodeType(NodeTypeType t) : type(t), inside_type(nullptr), self_type(nullptr),
-                                    is_mutable(false), item_length(0), FM_id(0), scope(nullptr) {}
+NodeType::NodeType(const NodeTypeType& t) : type(t), inside_type(nullptr), self_type(nullptr),
+                                           is_mutable(false), item_length(0), FM_id(0), field(nullptr) {}
 
-std::string NodeType::show() {
+NodeType::NodeType(const NodeTypeType &t, NodeType *fa_t, const int &x) : type(t), inside_type(fa_t), self_type(nullptr),
+                     is_mutable(false), item_length(x), FM_id(0), field(nullptr) {}
+
+std::string NodeType::show() const {
+    std::string res;
     switch (type) {
-        case NodeTypeType::I32: return "i32";
-        case NodeTypeType::U32: return "u32";
-        case NodeTypeType::Isize: return "isize";
-        case NodeTypeType::Usize: return "usize";
-        case NodeTypeType::AllInt: return "int";
-        case NodeTypeType::IInt: return "int";
-        case NodeTypeType::UInt: return "uint";
-        case NodeTypeType::Bool: return "bool";
-        case NodeTypeType::Char: return "char";
-        case NodeTypeType::Str: return "str";
-        case NodeTypeType::Unit: return "()";
-        case NodeTypeType::Struct: return "struct " + SE_name;
-        case NodeTypeType::Enum: return "enum " + SE_name;
+        case NodeTypeType::I32: return "(i32)";
+        case NodeTypeType::U32: return "(u32)";
+        case NodeTypeType::Isize: return "(isize)";
+        case NodeTypeType::Usize: return "(usize)";
+        case NodeTypeType::AllInt: return "(int)";
+        case NodeTypeType::IInt: return "(iint)";
+        case NodeTypeType::UInt: return "(uint)";
+        case NodeTypeType::Bool: return "(bool)";
+        case NodeTypeType::Char: return "(char)";
+        case NodeTypeType::Str: return "(str)";
+        case NodeTypeType::String: return "(String)";
+        case NodeTypeType::Unit: return "()[Unit]";
+        case NodeTypeType::Struct:
+            res = "(struct){" + SE_name;
+            bool first = true;
+            for (auto& [name, field_type] : field->item_table) {
+                if (first == false) res += ",";
+                if (field_type.is_mutable) res += " [mutable]";
+                res += " " + name + ": " + field_type.type.show();
+                first = false;
+            }
+            res += "}";
+            return res;
+        case NodeTypeType::Enum: return "(enum){" + SE_name + "}";
         case NodeTypeType::Array: {
-            std::string result = "[";
-            if (inside_type) result += inside_type->show();
-            result += "; " + std::to_string(item_length) + "]";
-            return result;
+            res = "(Array)[";
+            if (inside_type) res += inside_type->show();
+            res += "; " + std::to_string(item_length) + "]";
+            return res;
         }
-        case NodeTypeType::Function: return "function";
-        case NodeTypeType::Method: return "method";
-        case NodeTypeType::Type_of_Type: return "type";
+        case NodeTypeType::Function:
+            res = "(Function)(";
+            bool firs = true;
+            for (int i = 0; i < items_type.size(); i++) {
+                if (firs == false) res += ", ";
+                res += items_type[i]->show();
+                firs = false;
+            }
+            res += ") -> (" + inside_type->show() + ")";
+            return res;
+        case NodeTypeType::Method:
+            res = self_type->show() + ".(";
+            bool fir = true;
+            for (int i = 0; i < items_type.size(); i++) {
+                if (fir == false) res += ", ";
+                res += items_type[i]->show();
+                fir = false;
+            }
+            res += ") -> (" + inside_type->show() + ")";
+            return res;
+        case NodeTypeType::Type_of_Type: return "(" + inside_type->show() + ")_Type";
         case NodeTypeType::Amp: {
             std::string result = "&";
             if (inside_type) result += inside_type->show();
@@ -102,10 +135,10 @@ std::string NodeType::show() {
             if (inside_type) result += inside_type->show();
             return result;
         }
-        case NodeTypeType::Wildcard: return "_";
-        case NodeTypeType::Never: return "!";
+        case NodeTypeType::Wildcard: return "_[wildcard]";
+        case NodeTypeType::Never: return "![never]";
         case NodeTypeType::Unknown: return "unknown";
-        default: return "unknown";
+        default: return "really unknown !!!";
     }
 }
 
@@ -115,15 +148,20 @@ bool NodeType::operator==(const NodeType& other) const {
     }
     
     switch (type) {
-        case NodeTypeType::Array:
-            return item_length == other.item_length &&
-                   (inside_type && other.inside_type && *inside_type == *other.inside_type);
         case NodeTypeType::Struct:
         case NodeTypeType::Enum:
             return SE_name == other.SE_name;
+        case NodeTypeType::Array:
+            return item_length == other.item_length &&
+                   (inside_type && other.inside_type && *inside_type == *other.inside_type);
         case NodeTypeType::Function:
-        case NodeTypeType::Method:
-            return FM_id == other.FM_id;
+            bool res = inside_type && other.inside_type && *inside_type == *other.inside_type &&
+                       items_type.size() == other.items_type.size();
+            for (int i = 0; i < items_type.size(); i++)
+                res &= items_type[i] == other.items_type[i];
+            return res;
+        case NodeTypeType::Type_of_Type:
+            return inside_type && other.inside_type && *inside_type == *other.inside_type;
         case NodeTypeType::Amp:
         case NodeTypeType::Mut_Amp:
             return inside_type && other.inside_type && *inside_type == *other.inside_type;
@@ -146,3 +184,25 @@ std::vector<std::string> AstNode::show_tree() const {
     return res;
 }
 
+scope_item::scope_item(NodeType type, std::any const_value, const bool& is_mutable, const bool& is_const)
+    : type(std::move(type)), const_value(std::move(const_value)), is_mutable(is_mutable), is_const(is_const) {}
+
+scope_item unknown_item = scope_item(NodeTypeType::Unknown, std::any(), false, false);
+
+scope_item &Scope::get_item(const std::string &name) {
+    if (item_table.contains(name)) return item_table[name];
+    return unknown_item;
+}
+
+scope_item &Scope::get_type(const std::string &name) {
+    if (type_table.contains(name)) return type_table[name];
+    return unknown_item;
+}
+
+void Scope::add_item(const std::string &name, const scope_item &item) {
+    item_table[name] = item;
+}
+
+void Scope::add_type(const std::string &name, const scope_item &item) {
+    type_table[name] = item;
+}

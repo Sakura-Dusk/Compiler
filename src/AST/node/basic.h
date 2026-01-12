@@ -7,13 +7,14 @@
 
 #include <any>
 #include <map>
+#include <utility>
 #include<vector>
 #include<string>
 
 enum class NodeTypeType {
     I32, U32, Isize, Usize,
     AllInt, IInt, UInt,
-    Bool, Char, Str,
+    Bool, Char, Str, String,
     Unit,
     Struct, Enum, Array, Function, Method,
     Type_of_Type,//eg: i32, u32(for "as i32")
@@ -35,27 +36,36 @@ public:
     std::string SE_name;//struct or enum name
     std::vector<NodeType*> items_type;
     std::map<std::string, int> items_index;
-    Scope* scope;
+    Scope* field = nullptr;
 
-    std::string show();
+    std::string show() const;
 
     NodeType();
-    NodeType(NodeTypeType);
+    NodeType(const NodeTypeType&);
+    NodeType(const NodeTypeType&, NodeType*, const int&);
     bool operator==(const NodeType &) const;
 };
 
 class scope_item {
 public:
+    scope_item() = default;
+    scope_item(NodeType, std::any, const bool&, const bool&);
+
     NodeType type;
     std::any const_value;
     bool is_mutable = false;
     bool is_const = false;
-    int index = 0;
 };
 
 class Scope {
 public:
     std::map<std::string, scope_item> item_table, type_table;
+
+    scope_item& get_item(const std::string&);
+    scope_item& get_type(const std::string&);
+
+    void add_item(const std::string&, const scope_item&);
+    void add_type(const std::string&, const scope_item&);
 };
 
 enum class AstNodetype {
@@ -111,10 +121,12 @@ public:
     std::string value;
 
     AstNode* father;
-    std::any const_value;
-    AstNode* scope_father;
-    Scope scope_value;
     NodeType actual_type;
+    std::any const_value;
+
+    Scope* scope_value;
+    AstNode* scope_father;
+
     int now_go_son_id;
     bool is_mut = false;
     bool is_variable = false;
@@ -124,5 +136,37 @@ public:
     std::vector<std::string> show_node() const;
 };
 
+inline NodeType I32 = NodeType(NodeTypeType::I32);
+inline NodeType U32 = NodeType(NodeTypeType::U32);
+inline NodeType Isize = NodeType(NodeTypeType::Isize);
+inline NodeType Usize = NodeType(NodeTypeType::Usize);
+inline NodeType Bool = NodeType(NodeTypeType::Bool);
+inline NodeType Char = NodeType(NodeTypeType::Char);
+inline NodeType Str = NodeType(NodeTypeType::Str);
+inline NodeType String = NodeType(NodeTypeType::String);
+inline NodeType Unit = NodeType(NodeTypeType::Unit);
+inline NodeType Struct = NodeType(NodeTypeType::Struct);
+inline NodeType Enum = NodeType(NodeTypeType::Enum);
+inline NodeType Array = NodeType(NodeTypeType::Array);
+inline NodeType Function = NodeType(NodeTypeType::Function);
+inline NodeType Method = NodeType(NodeTypeType::Method);
+// inline NodeType Type_of_Type = NodeType(NodeTypeType::Type_of_Type);
+inline NodeType Amp = NodeType(NodeTypeType::Amp);
+inline NodeType Mut_Amp = NodeType(NodeTypeType::Mut_Amp);
+inline NodeType Wildcard = NodeType(NodeTypeType::Wildcard);
+inline NodeType Never = NodeType(NodeTypeType::Never);
+inline NodeType UnKnown = NodeType(NodeTypeType::Unknown);
+
+inline NodeType I32_Type = NodeType(NodeTypeType::Type_of_Type, &I32, 0);
+inline NodeType U32_Type = NodeType(NodeTypeType::Type_of_Type, &U32, 0);
+inline NodeType Isize_Type = NodeType(NodeTypeType::Type_of_Type, &Isize, 0);
+inline NodeType Usize_Type = NodeType(NodeTypeType::Type_of_Type, &Usize, 0);
+inline NodeType Bool_Type = NodeType(NodeTypeType::Type_of_Type, &Bool, 0);
+inline NodeType Char_Type = NodeType(NodeTypeType::Type_of_Type, &Char, 0);
+inline NodeType Str_Type = NodeType(NodeTypeType::Type_of_Type, &Str, 0);
+inline NodeType String_Type = NodeType(NodeTypeType::Type_of_Type, &String, 0);
+inline NodeType Wildcard_Type = NodeType(NodeTypeType::Type_of_Type, &Wildcard, 0);
+
+inline NodeType Str_Amp = NodeType(NodeTypeType::Amp, &Str, 0);
 
 #endif //BASIC_H
