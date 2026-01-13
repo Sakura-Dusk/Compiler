@@ -33,6 +33,9 @@ add_executable(testcases
         ../src/parser/parser.h
         ../src/semantic/semantic_analyzer.h
         ../src/semantic/ast_visitor.h
+        ../src/semantic/semantic.cpp
+        ../src/semantic/semantic.cpp
+        ../src/semantic/semantic.cpp
 )
 
 # 链接被测库 + gtest

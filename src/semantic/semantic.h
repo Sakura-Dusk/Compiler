@@ -9,10 +9,10 @@
 #include"../lexer.h"
 #include"../AST/node/basic.h"
 
-void semantic_visit_node(AstNode* node);
+void semantic_visit_node(AstNode*, AstNode*);
 
-void build_universe_scope(AstNode* node);
+void build_universe_scope(AstNode*);
 
-void Semantic_check(AstNode* node);
+void Semantic_check(AstNode*);
 
 #endif //SEMANTIC_H

@@ -50,7 +50,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
             auto now_node = queue.back();
             queue.pop_back();
 
-            if (now_node->type == AstNodetype::Type || now_node->type == AstNodetype::IDENTIFIER) {
+            if (now_node->type == AstNodetype::Type || now_node->type == AstNodetype::Identifier) {
                 std::string to_name = rename_in_dependency(now_node);
                 int to = lower_bound(name.begin(), name.end(), to_name) - name.begin();
                 if (to != name.size() && now == to && name[to] == to_name && mp[name[to]]->type != AstNodetype::Function) {
