@@ -6,6 +6,7 @@
 #define SEMANTIC_H
 
 #include<climits>
+#include"../lexer.h"
 #include"../AST/node/basic.h"
 
 void semantic_visit_node(AstNode* node);
