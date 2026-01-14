@@ -22,16 +22,10 @@ add_executable(Compiler
         src/main.cpp
         src/parser/parser.cpp
         src/AST/node/basic.cpp
-        src/semantic/semantic_analyzer.cpp
-        src/semantic/ast_visitor.cpp
+        src/semantic/semantic.cpp
 
         src/AST/node/basic.h
         src/parser/parser.h
-        src/semantic/semantic_analyzer.h
-        src/semantic/ast_visitor.h
-        src/semantic/semantic.cpp
-        src/semantic/semantic.cpp
-        src/semantic/semantic.cpp
         src/semantic/semantic.cpp)
 
 enable_testing()

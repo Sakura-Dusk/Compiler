@@ -9,6 +9,8 @@
 #include"../lexer.h"
 #include"../AST/node/basic.h"
 
+int Item_id_tot = 0;
+
 void semantic_visit_node(AstNode*, AstNode*);
 
 void build_universe_scope(AstNode*);

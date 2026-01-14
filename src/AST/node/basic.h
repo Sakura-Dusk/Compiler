@@ -35,7 +35,7 @@ public:
     int item_length = 0, FM_id = 0;//function or method id
     std::string SE_name;//struct or enum name
     std::vector<NodeType*> items_type;
-    std::map<std::string, int> items_index;
+    std::map<std::string, unsigned int>* items_index;
     Scope* field = nullptr;
 
     std::string show() const;
@@ -49,12 +49,13 @@ public:
 class scope_item {
 public:
     scope_item() = default;
-    scope_item(NodeType, std::any, const bool&, const bool&);
+    scope_item(NodeType, std::any, const bool&, const bool&, long long);
 
     NodeType type;
     std::any const_value;
     bool is_mutable = false;
-    bool is_const = false;
+    bool is_uncoverable = false;
+    long long ID;
 };
 
 class Scope {
@@ -132,6 +133,8 @@ public:
     bool is_variable = false;
     bool exist_break = false, exist_return = false, must_break = false;
 
+    long long variableID;
+
     std::vector<std::string> show_tree() const;
     std::vector<std::string> show_node() const;
 };
@@ -140,6 +143,10 @@ inline NodeType I32 = NodeType(NodeTypeType::I32);
 inline NodeType U32 = NodeType(NodeTypeType::U32);
 inline NodeType Isize = NodeType(NodeTypeType::Isize);
 inline NodeType Usize = NodeType(NodeTypeType::Usize);
+inline NodeType Int = NodeType(NodeTypeType::AllInt);
+inline NodeType AllInt = NodeType(NodeTypeType::AllInt);
+inline NodeType IInt = NodeType(NodeTypeType::IInt);
+inline NodeType UInt = NodeType(NodeTypeType::UInt);
 inline NodeType Bool = NodeType(NodeTypeType::Bool);
 inline NodeType Char = NodeType(NodeTypeType::Char);
 inline NodeType Str = NodeType(NodeTypeType::Str);
