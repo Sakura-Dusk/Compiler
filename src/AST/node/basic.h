@@ -38,6 +38,8 @@ public:
     std::map<std::string, unsigned int>* items_index;
     Scope* field = nullptr;
 
+    bool is_exit = false;
+
     std::string show() const;
 
     NodeType();
@@ -51,7 +53,7 @@ public:
     scope_item() = default;
     scope_item(NodeType, std::any, const bool&, const bool&, long long);
 
-    NodeType type;
+    NodeType type = NodeTypeType::Unknown;
     std::any const_value;
     bool is_mutable = false;
     bool is_uncoverable = false;
@@ -74,7 +76,6 @@ enum class AstNodetype {
     Function,
     Struct,
     Enumeration,
-    Enumeration_Items,
     ConstantItem,
     Trait,
     Implementation,

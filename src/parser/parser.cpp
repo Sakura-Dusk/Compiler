@@ -119,24 +119,18 @@ void Parser::parser_Enumeration(AstNode *node) {
     node->type = AstNodetype::Enumeration;
 
     lexer.expect({TokenType::Keyword, "enum"});
-    auto new_node = new AstNode;
-    new_node->type = AstNodetype::Identifier;
-    new_node->value = lexer.expect(TokenType::Identifier).value;
-    node->children.push_back(new_node);
+    node->value = lexer.expect(TokenType::Identifier).value;
 
-    auto node_items = new AstNode;
-    node_items->type = AstNodetype::Enumeration_Items;
-    node->children.push_back(node_items);
     lexer.expect({TokenType::Punctuation, "{"});
 
     bool is_comma = true;
     while (lexer.peek_next_token() != (Token){TokenType::Punctuation, "}"}) {
         if (is_comma == false) throw std::runtime_error("RE");
         is_comma = false;
-        new_node = new AstNode;
+        auto new_node = new AstNode;
         new_node->type = AstNodetype::Identifier;
         new_node->value = lexer.expect(TokenType::Identifier).value;
-        node_items->children.push_back(new_node);
+        node->children.push_back(new_node);
 
         if (lexer.peek_next_token() == (Token){TokenType::Punctuation, ","}) {
             is_comma = true;

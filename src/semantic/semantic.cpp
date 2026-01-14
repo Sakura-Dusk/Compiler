@@ -20,12 +20,14 @@ bool is_item(AstNode* node) {
     return false;
 }
 
+//just like "i32" in code show as a type, it shows a type but its actual_type is a typetype, so we need to convert it to i32
 NodeType& type_to_item(NodeType &a) {
   	if (a == Unit) return a;
     if (a.type != NodeTypeType::Type_of_Type) throw std::runtime_error("Semantic Error: expected type type!");
     return *a.inside_type;
 }
 
+//just go backwards
 NodeType item_to_type(NodeType* a) {
  	if (*a == Unit) return *a;
 	NodeType T(NodeTypeType::Type_of_Type, a, 0);
@@ -63,6 +65,20 @@ void Expect_Type_match(const NodeType& type, const NodeType& expr_type, std::str
         return Expect_Type_match(*type.inside_type, *expr_type.inside_type, RE_words, false);
     }
     throw std::runtime_error(RE_words);
+}
+
+scope_item& find_scope_type(Scope* scope_value, const AstNode* scope_father, const std::string& name) {
+    auto res = scope_value->get_type(name);
+    if (res.type != NodeTypeType::Unknown) return res;
+    if (scope_father == nullptr) return res;
+    return find_scope_type(scope_father->scope_value, scope_father->scope_father, name);
+}
+
+scope_item& find_scope_item(Scope* scope_value, const AstNode* scope_father, const std::string& name) {
+    auto res = scope_value->get_item(name);
+    if (res.type != NodeTypeType::Unknown) return res;
+    if (scope_father == nullptr) return res;
+    return find_scope_item(scope_father->scope_value, scope_father->scope_father, name);
 }
 
 void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKnown) {
@@ -340,7 +356,50 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
     if (node->type == AstNodetype::Continue) node->exist_break = true;
 
 	if (node->type == AstNodetype::Function) {
-        
+        auto return_type = type_to_item(node->children[1]->actual_type);
+	    auto func_type = node->children[2]->actual_type;
+	    Expect_Type_match(return_type, func_type, "function " + node->value + " return type mismatch!");
+    }
+    else if (node->type == AstNodetype::Identifier) {
+        scope_item s;
+        if (father->type == AstNodetype::Binary_Operator && father->value == "::" && father->now_go_son_id == 0)
+            s = find_scope_type(node->scope_value, node->scope_father, node->value);
+        else if (father->type == AstNodetype::Binary_Operator && father->value == "as" && father->now_go_son_id == 1)
+            s = find_scope_type(node->scope_value, node->scope_father, node->value);
+        else if (father->type == AstNodetype::StructField && father->now_go_son_id == 0)
+            s = find_scope_type(node->scope_value, node->scope_father, node->value);
+        else {
+            s = find_scope_item(node->scope_value, node->scope_father, node->value);
+            if (s.type == UnKnown) s = find_scope_type(node->scope_value, node->scope_father, node->value);
+        }
+
+        if (s.type == UnKnown) {
+            throw std::runtime_error("Semantic Error: identifier " + node->value + " not found in field!");
+        }
+
+        node->is_mut = s.is_mutable;
+        node->is_variable = true;
+        node->actual_type = s.type;
+        node->const_value = s.const_value;
+        node->variableID = s.ID;
+
+        if (s.type.is_exit && father->type == AstNodetype::FunctionCall && father->now_go_son_id == 0) {
+            auto now_node = father->father;
+            if (now_node == nullptr) throw std::runtime_error("Semantic Error: exit function must be called in main function body!");
+            if (now_node->type != AstNodetype::Expression && now_node->type != AstNodetype::Return) throw std::runtime_error("Semantic Error: exit function must be called in main function body!");
+
+            now_node = now_node->father;
+            if (now_node == nullptr) throw std::runtime_error("Semantic Error: exit function must be called in main function body!");
+            if (now_node->type != AstNodetype::Statements || now_node->now_go_son_id != now_node->children.size() - 1) throw std::runtime_error("Semantic Error: exit function must be called at the end of function body!");
+
+            now_node = now_node->father;
+            if (now_node == nullptr) throw std::runtime_error("Semantic Error: exit function must be called in main function body!");
+            if (now_node->type != AstNodetype::Function || now_node->value != "main") throw std::runtime_error("Semantic Error: exit function must be called in main function body!");
+
+            now_node = now_node->father;
+            if (now_node == nullptr) throw std::runtime_error("Semantic Error: exit function must be called in main function body!");
+            if (now_node->type != AstNodetype::Program) throw std::runtime_error("Semantic Error: exit function must be called in main function body!");
+        }
     }
 }
 
@@ -351,8 +410,10 @@ void build_universe_scope(AstNode* node) {
     Item_id_tot = 0;
 
     NodeType funct = NodeType(NodeTypeType::Function, &Unit, 0);
-    funct.items_type.push_back(&I32);
+    funct.items_type.push_back(&I32); funct.is_exit = true;
     node->scope_value->add_item("exit", scope_item(funct, std::any(), false, true, ++Item_id_tot));
+    funct.is_exit = false;
+
     node->scope_value->add_type("printInt", scope_item(funct, std::any(), false, true, ++Item_id_tot));
     node->scope_value->add_type("printlnInt", scope_item(funct, std::any(), false, true, ++Item_id_tot));
 
