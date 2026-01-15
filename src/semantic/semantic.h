@@ -11,6 +11,8 @@
 
 int Item_id_tot = 0;
 
+struct Unit_value{};
+
 void semantic_visit_node(AstNode*, AstNode*);
 
 void build_universe_scope(AstNode*);

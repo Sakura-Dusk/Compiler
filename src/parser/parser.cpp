@@ -412,7 +412,7 @@ void Parser::parser_Statements(AstNode *node) {
         }
         else {
             auto new_node = new AstNode;
-            parser_Expression(new_node);
+            parser_Expression_checkRes(new_node);
             node->children.push_back(new_node);
         }
 
@@ -462,15 +462,24 @@ void Parser::parser_Expression(AstNode *node, bool only_flag) {
     node->children.push_back(pratt_Expression(0, only_flag));
 }
 
+void Parser::parser_Expression_checkRes(AstNode *node) {
+    node->type = AstNodetype::Expression;
+    parser_Expression(node, true);
+    if (lexer.peek_next_token() != (Token){TokenType::Punctuation, ";"}) node->type = AstNodetype::Return_Cur;
+        else lexer.get_next_token();
+}
+
 void Parser::parser_ArrayElements(AstNode *node) {
     node->type = AstNodetype::ArrayElements;
     int is_semicolon = -1;//-1:unkown, 0:only ,   , 1: one semicolon!
-    bool is_seperator = true;;
+    //-1:unknown, 0: [a, b], 1: [a: b]
+    auto new_group = new AstNode;
+    bool is_seperator = true;
     while (lexer.peek_next_token() != (Token){TokenType::Punctuation, "]"}) {
         if (is_seperator == false) throw std::runtime_error("RE");
         auto now_node = new AstNode;
         parser_Expression(now_node);
-        node->children.push_back(now_node);
+        new_group->children.push_back(now_node);
         auto next_token = lexer.peek_next_token();
         if (next_token == (Token){TokenType::Punctuation, ","}) {
             lexer.get_next_token();
@@ -488,7 +497,17 @@ void Parser::parser_ArrayElements(AstNode *node) {
         }
         is_seperator = false;
     }
-    if (is_semicolon == 1 && is_seperator == true) throw std::runtime_error("RE");
+
+    if (is_semicolon == -1) is_semicolon = 0;
+    if (is_semicolon == 0) {
+        node->children.push_back(new_group);
+        new_group->type = AstNodetype::GroupExpression;
+    }
+    else {//is_semicolon == 1
+        if (is_seperator == true) throw std::runtime_error("RE");
+        if (new_group->children.size() != 2) throw std::runtime_error("RE");
+        node->children = new_group->children;//then we don't need new_group node anymore
+    }
 }
 
 bool check_prefix_value(const Token& token) {

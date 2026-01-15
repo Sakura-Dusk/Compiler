@@ -4,6 +4,10 @@
 
 #include "semantic.h"
 
+#include <complex>
+
+#include "../../cmake-build-release/_deps/googletest-src/googletest/include/gtest/internal/gtest-port.h"
+
 std::string rename_in_dependency(AstNode* node) {
   	if (node->type == AstNodetype::Implementation) {
   		return "impl@" + rename_in_dependency(node->children[0]);
@@ -65,6 +69,36 @@ void Expect_Type_match(const NodeType& type, const NodeType& expr_type, std::str
         return Expect_Type_match(*type.inside_type, *expr_type.inside_type, RE_words, false);
     }
     throw std::runtime_error(RE_words);
+}
+
+bool is_number(const NodeType &A) {
+    return A == Int || A == IInt || A == UInt || A == I32 || A == U32 || A == Isize || A == Usize;
+}
+
+void Number_Type_Pair(NodeType& A, NodeType& B, std::string RE_words) {
+    if (!is_number(A) || !is_number(B)) throw std::runtime_error(RE_words + "! should be number but not!");
+    if (A == Int) A = B;
+    else if (A == IInt && B == Int) B = A;
+    else if (A == IInt && (B == I32 || B == Isize)) A = B;
+    else if (A == UInt && B == Int) B = A;
+    else if (A == UInt && (B == U32 || B == Usize)) A = B;
+    else if (A == I32 && (B == Int || B == IInt)) B = A;
+    else if (A == U32 && (B == Int || B == UInt)) B = A;
+    else if (A == Isize && (B == Int || B == IInt)) B = A;
+    else if (A == Usize && (B == Int || B == UInt)) B = A;
+
+    if (A != B) throw std::runtime_error(RE_words + "! number type mismatch!");
+}
+
+void Type_Pair(NodeType& A, NodeType& B, std::string RE_words) {
+    if (A == Wildcard) {A = B; return ;}
+    if (B == Wildcard) {B = A; return ;}
+    if (A.type == NodeTypeType::Array || B.type == NodeTypeType::Array) {
+        if (A.type != B.type || A.item_length != B.item_length)
+            throw std::runtime_error(RE_words);
+        Type_Pair(*A.inside_type, *B.inside_type, RE_words);
+    }
+    if (A != B) Number_Type_Pair(A, B, RE_words);
 }
 
 scope_item& find_scope_type(Scope* scope_value, const AstNode* scope_father, const std::string& name) {
@@ -400,6 +434,137 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
             if (now_node == nullptr) throw std::runtime_error("Semantic Error: exit function must be called in main function body!");
             if (now_node->type != AstNodetype::Program) throw std::runtime_error("Semantic Error: exit function must be called in main function body!");
         }
+    }
+    else if (node->type == AstNodetype::Self) {
+        auto &s = find_scope_item(node->scope_value, node->scope_father, "self");
+        if (s.type == UnKnown) throw std::runtime_error("Semantic Error: self identifier not found in field!");
+        node->actual_type = s.type;
+        node->is_mut = s.is_mutable;
+        node->is_variable = true;
+        node->variableID = s.ID;
+    }
+    else if (node->type == AstNodetype::Type) {
+        if (node->value == "i32") node->actual_type = I32_Type;
+        else if (node->value == "u32") node->actual_type = U32_Type;
+        else if (node->value == "isize") node->actual_type = Isize_Type;
+        else if (node->value == "usize") node->actual_type = Usize_Type;
+        else if (node->value == "str") node->actual_type = Str_Type;
+        else if (node->value == "string") node->actual_type = String_Type;
+        else if (node->value == "char") node->actual_type = Char_Type;
+        else if (node->value == "bool") node->actual_type = Bool_Type;
+        else if (node->value == "()") node->actual_type = Unit;
+        else if (node->value == "_") node->actual_type = Wildcard_Type;
+        else {
+            if (node->children.empty()) {//sth like StructName
+                auto s = find_scope_type(node->scope_value, node->scope_father, node->value).type;
+                if (s.type != NodeTypeType::Type_of_Type) throw std::runtime_error("Semantic Error: type " + node->value + " not found in field!");
+                node->actual_type = s;
+            }
+            else if (node->children.size() == 2) {// Array
+                //first children is type, second is length expression
+                auto const_length = node->children[1]->const_value;
+                auto const_type = node->children[1]->actual_type;
+                if (!const_length.has_value() || (const_type != UInt && const_type != Int && const_type != Usize)) throw std::runtime_error("Semantic Error: array length must be constant unsigned integer expression!");
+                node->actual_type.type = NodeTypeType::Type_of_Type;
+                node->actual_type.inside_type = new NodeType(NodeTypeType::Array, node->children[0]->actual_type.inside_type, static_cast<unsigned int>(std::any_cast<long long>(const_length)));
+            }
+            else throw std::runtime_error("Semantic Error: unknown type expression!");
+        }
+    }
+    else if (node->type == AstNodetype::Statements) {
+        if (node->children.empty()) {
+            node->actual_type = Unit;
+        }
+        else {
+            if (node->children.back()->type == AstNodetype::Return_Cur) {
+                node->actual_type = node->children.back()->actual_type;
+            }
+            else {
+                node->actual_type = Unit;
+                for (auto son: node->children)
+                    if (son->actual_type == Never || son->exist_break || son->exist_return) node->actual_type == Never;
+            }
+            for (auto son: node->children) if (son != node->children.back())
+                if (son->type == AstNodetype::Return_Cur && son->actual_type != Unit && son->actual_type != Never)
+                    throw std::runtime_error("Semantic Error: unknown return type expression!");
+        }
+    }
+    else if (node->type == AstNodetype::Return_Cur) {
+        node->actual_type = node->children[0]->actual_type;
+        node->const_value = node->children[0]->const_value;
+    }
+    else if (node->type == AstNodetype::LetStatement) {
+        auto var_type = type_to_item(node->children[1]->actual_type);
+        auto expr_type = node->children[2]->actual_type;
+        Expect_Type_match(var_type, expr_type, "let statement " + node->children[0]->value + " type mismatch!");
+        if (var_type == Wildcard) {
+            var_type = expr_type;
+            if (expr_type == Int || expr_type == IInt) var_type = I32;
+            if (expr_type == Never) var_type = Unit;
+        }
+        scope_item value(var_type, std::any(), false, false, ++Item_id_tot);
+        if (node->children[0]->value == "mut") value.is_mutable = true;
+        node->actual_type = var_type;
+        node->variableID = value.ID;
+        if (find_scope_item(node->scope_value, node->scope_father, node->value).is_uncoverable) throw std::runtime_error("Semantic Error: redefinition of a uncoverable variable " + node->value + "!");
+        if (node->value != "_") node->scope_value->add_item(node->value, value);
+    }
+    else if (node->type == AstNodetype::Expression) {
+        if (node->children.empty()) {
+            node->actual_type = Unit;
+            node->const_value = Unit_value();
+        }
+        else {
+            node->actual_type = node->children[0]->actual_type;
+            node->const_value = node->children[0]->const_value;
+            node->is_mut = node->children[0]->is_mut;
+            node->is_variable = node->children[0]->is_variable;
+        }
+    }
+    else if (node->type == AstNodetype::ArrayElements) {
+        if (node->children.size() == 1) {//[a,b,c]
+            auto& items = node->children[0]->children;
+            if (items.empty()) throw std::runtime_error("Semantic Error: cannot infer type of empty array!");
+            NodeType& item_type = items[0]->actual_type;
+            std::vector<std::any> const_value;
+            bool is_const = true;
+            for (auto item: items) {
+                if (item_type == Never) item_type = item->actual_type;
+                else if (item->actual_type != Never) Type_Pair(item->actual_type, item_type, "array elements type mismatch!");
+                if (!item->const_value.has_value()) is_const = false;
+                if (is_const) const_value.push_back(item->const_value);
+            }
+            node->actual_type = (NodeType){NodeTypeType::Array, &item_type, static_cast<unsigned int>(items.size())};
+            if (is_const) node->const_value = const_value;
+        }
+        else {
+            //[a;b]
+            auto length_type = node->children[1]->actual_type;
+            auto const_length = node->children[1]->const_value;
+            if (!const_length.has_value() || (length_type != Int && length_type != UInt && length_type != Usize))
+                throw std::runtime_error("Semantic Error: array length must be constant unsigned integer expression!");
+            unsigned int length = static_cast<unsigned int>(std::any_cast<long long>(const_length));
+            node->actual_type = (NodeType){NodeTypeType::Array, &node->children[0]->actual_type, length};
+            auto const_value_single = node->children[0]->const_value;
+            if (const_value_single.has_value()) {
+                std::vector<std::any> const_value;
+                for (unsigned int i = 0; i < length; i++)
+                    const_value.push_back(const_value_single);
+                node->const_value = const_value;
+            }
+        }
+    }
+    else if (node->type == AstNodetype::Loop) {
+        if (node->actual_type == UnKnown) node->actual_type = Unit;
+        if (!node->children[0]->must_break) node->actual_type = Never;
+        Expect_Type_match(Unit, node->children[0]->actual_type, "loop body type mismatch!");
+    }
+    else if (node->type == AstNodetype::While) {
+        if (node->children[0]->actual_type != Bool) throw std::runtime_error("Semantic Error: while condition must be boolean expression!");
+        node->actual_type = Unit;
+    }
+    else if (node->type == AstNodetype::If) {
+
     }
 }
 

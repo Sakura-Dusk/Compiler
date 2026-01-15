@@ -19,6 +19,7 @@ class Parser {
     void parser_Statements(AstNode*);
     void parser_LetStatement(AstNode*);
     void parser_Expression(AstNode*, bool only_flag = false);
+    void parser_Expression_checkRes(AstNode*);
     AstNode* pratt_Expression(int precedence, bool);
     void parser_ArrayElements(AstNode*);
     void parser_CallParams(AstNode*);

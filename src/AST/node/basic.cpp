@@ -20,6 +20,7 @@ std::vector<std::string> AstNode::show_node() const {
     if (type == AstNodetype::Else) res.back() = "Else";
     if (type == AstNodetype::Enumeration) res.back() = "Enumeration";
     if (type == AstNodetype::Expression) res.back() = "Expression";
+    if (type == AstNodetype::GroupExpression) res.back() = "GroupExpression";
     if (type == AstNodetype::Field) res.back() = "Field";
     if (type == AstNodetype::Fields) res.back() = "Fields";
     if (type == AstNodetype::Function) res.back() = "Function";
@@ -33,6 +34,7 @@ std::vector<std::string> AstNode::show_node() const {
     if (type == AstNodetype::Return) res.back() = "Return";
     if (type == AstNodetype::Self) res.back() = "Self";
     if (type == AstNodetype::Statements) res.back() = "Statements";
+    if (type == AstNodetype::Return_Cur) res.back() = "Return_Cur";
     if (type == AstNodetype::Struct) res.back() = "Struct";
     if (type == AstNodetype::Trait) res.back() = "Trait";
     if (type == AstNodetype::Type) res.back() = "Type";
@@ -45,7 +47,6 @@ std::vector<std::string> AstNode::show_node() const {
     if (type == AstNodetype::CallParams) res.back() = "CallParams";
     if (type == AstNodetype::Char_Literal) res.back() = "Char_Literal";
     if (type == AstNodetype::ConstantItem) res.back() = "ConstantItem";
-    if (type == AstNodetype::Enumeration_Items) res.back() = "Enumeration_Items";
     if (type == AstNodetype::Float_Literal) res.back() = "Float_Literal";
     if (type == AstNodetype::FunctionCall) res.back() = "FunctionCall";
     if (type == AstNodetype::FunctionParameters) res.back() = "FunctionParameters";
@@ -68,7 +69,7 @@ NodeType::NodeType() : type(NodeTypeType::Unknown), inside_type(nullptr), self_t
 NodeType::NodeType(const NodeTypeType& t) : type(t), inside_type(nullptr), self_type(nullptr),
                                            is_mutable(false), item_length(0), FM_id(0), field(nullptr) {}
 
-NodeType::NodeType(const NodeTypeType &t, NodeType *fa_t, const int &x) : type(t), inside_type(fa_t), self_type(nullptr),
+NodeType::NodeType(const NodeTypeType &t, NodeType *fa_t, const unsigned int &x) : type(t), inside_type(fa_t), self_type(nullptr),
                      is_mutable(false), item_length(x), FM_id(0), field(nullptr) {}
 
 std::string NodeType::show() const {

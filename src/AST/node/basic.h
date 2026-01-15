@@ -32,7 +32,8 @@ public:
     NodeType* inside_type;//for array each type, type_of_type inside type, function,method return type
     NodeType* self_type;//only for method, type of Self
     bool is_mutable = false;
-    int item_length = 0, FM_id = 0;//function or method id
+    unsigned int item_length = 0;
+    int FM_id = 0;//function or method id
     std::string SE_name;//struct or enum name
     std::vector<NodeType*> items_type;
     std::map<std::string, unsigned int>* items_index;
@@ -44,7 +45,7 @@ public:
 
     NodeType();
     NodeType(const NodeTypeType&);
-    NodeType(const NodeTypeType&, NodeType*, const int&);
+    NodeType(const NodeTypeType&, NodeType*, const unsigned int&);
     bool operator==(const NodeType &) const;
 };
 
@@ -89,9 +90,11 @@ enum class AstNodetype {
     TypedIdentifier,
     Type,
     Statements,
+    Return_Cur,
     LetStatement,
     Pattern,
     Expression,
+    GroupExpression,
     ArrayElements,
     Loop,
     While,
