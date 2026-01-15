@@ -85,10 +85,9 @@ enum class AstNodetype {
     Identifier,
     AssociatedItem,
     Self,//self , Self is type
-    Amp,
-    Mut,
     TypedIdentifier,
     Type,
+    Quantifier,
     Statements,
     Return_Cur,
     LetStatement,

@@ -38,7 +38,7 @@ NodeType item_to_type(NodeType* a) {
 	return T;
 }
 
-NodeType item_to_type(NodeType &a) {
+NodeType item_to_type(const NodeType &a) {
  	if (a == Unit) return a;
 	NodeType T(NodeTypeType::Type_of_Type, new NodeType(a), 0);
 	return T;
@@ -73,6 +73,9 @@ void Expect_Type_match(const NodeType& type, const NodeType& expr_type, std::str
 
 bool is_number(const NodeType &A) {
     return A == Int || A == IInt || A == UInt || A == I32 || A == U32 || A == Isize || A == Usize;
+}
+bool is_numberB(const NodeType &A) {
+    return is_number(A) || A == Bool;
 }
 
 void Number_Type_Pair(NodeType& A, NodeType& B, std::string RE_words) {
@@ -208,8 +211,8 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
             for (auto grand_son: son->children[0]->children) {
                 bool has_ref = false, has_mut = false;
                 for (auto to: grand_son->children) {
-                    if (to->type == AstNodetype::Amp) has_ref = true;
-                    if (to->type == AstNodetype::Mut) has_mut = true;
+                    if (to->type == AstNodetype::Quantifier && to->value == "&") has_ref = true;
+                    if (to->type == AstNodetype::Quantifier && to->value == "mut") has_mut = true;
                 }
                 if (grand_son->type != AstNodetype::Self) {
                     NodeType param_type = grand_son->children.back()->actual_type;
@@ -564,7 +567,151 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         node->actual_type = Unit;
     }
     else if (node->type == AstNodetype::If) {
+        if (node->children[0]->actual_type != Bool) throw std::runtime_error("Semantic Error: if condition must be boolean expression!");
+        if (node->children.size() <= 2) {
+            Expect_Type_match(Unit, node->children[1]->actual_type, "if body type should be Unit type!");
+            node->actual_type = Unit;
+        }
+        else {
+            auto true_type = node->children[1]->actual_type;
+            auto false_type = node->children[2]->actual_type;
+            if (true_type == Never) true_type = false_type;
+            else if (false_type == Never) false_type = true_type;
+            Type_Pair(true_type, false_type, "if-else body type mismatch!");
+            node->actual_type = true_type;
+        }
+    }
+    else if (node->type == AstNodetype::Else) {
+        if (father->type != AstNodetype::If) throw std::runtime_error("Semantic Error: else without if!");
+        node->actual_type = node->children[0]->actual_type;
+        node->const_value = node->children[0]->const_value;
+    }
+    else if (node->type == AstNodetype::Unary_Operator) {
+        auto &operand_type = node->children[0]->actual_type;
+        auto const_value = node->children[0]->const_value;
+        if (node->value == "-") {
+            auto should_type = IInt;
+            Expect_Type_match(should_type, operand_type, "unary - operator type mismatch!");
+            node->actual_type = operand_type;
+            if (const_value.has_value()) node->const_value = -std::any_cast<long long>(const_value);
+        }
+        else if (node->value == "!") {
+            if (!is_numberB(operand_type)) throw std::runtime_error("Semantic Error: unary ! operator type mismatch!");
+            node->actual_type = operand_type;
+            if (const_value.has_value()) {
+                if (operand_type == Bool) node->const_value = !std::any_cast<bool>(const_value);
+                else node->const_value = ~std::any_cast<long long>(const_value);
+            }
+        }
+        else if (node->value == "&") {
+            if (operand_type.type == NodeTypeType::Type_of_Type) node->actual_type = item_to_type(give_ref(type_to_item(operand_type)));
+            else node->actual_type = give_ref(operand_type);
+        }
+        else if (node->value == "&mut") {
+            if (operand_type.type == NodeTypeType::Type_of_Type) node->actual_type = item_to_type(give_mutref(type_to_item(operand_type)));
+            else node->actual_type = give_mutref(operand_type);
+            if (node->children[0]->is_mut == false && node->children[0]->is_variable == true)
+                throw std::runtime_error("Semantic Error: cannot take mutable reference of immutable variable!");
+        }
+        else if (node->value == "*") {
+            if (operand_type.type != NodeTypeType::Amp && operand_type.type != NodeTypeType::Mut_Amp)
+                throw std::runtime_error("Semantic Error: dereference operator type mismatch!");
+            if (operand_type.type == NodeTypeType::Mut_Amp) node->is_mut = true;
+                else node->is_mut = false;
+            node->is_variable = true;
+            node->actual_type = *operand_type.inside_type;
+        }
+    }
+    else if (node->type == AstNodetype::Binary_Operator) {
+        auto type1 = node->children[0]->actual_type;
+        auto type2 = node->children[1]->actual_type;
+        auto value1 = node->children[0]->const_value;
+        auto value2 = node->children[1]->const_value;
 
+        if (node->value == "+" || node->value == "-" || node->value == "*" || node->value == "/" || node->value == "%") {
+            if (type1.type == NodeTypeType::Amp) type1 = *type1.inside_type;
+            if (type2.type == NodeTypeType::Amp) type2 = *type2.inside_type;
+            if (!is_numberB(type1) || !is_numberB(type2))
+                throw std::runtime_error("Semantic Error: arithmetic operator type mismatch!");
+            Number_Type_Pair(type1, type2, "arithmetic operator type mismatch!");
+            node->actual_type = type1;
+            if (value1.has_value() && value2.has_value()) {
+                auto const_value1 = std::any_cast<long long>(value1);
+                auto const_value2 = std::any_cast<long long>(value2);
+                if (node->value == "+") node->const_value = const_value1 + const_value2;
+                else if (node->value == "-") node->const_value = const_value1 - const_value2;
+                else if (node->value == "*") node->const_value = const_value1 * const_value2;
+                else if (node->value == "/") {
+                    if (const_value2 == 0) throw std::runtime_error("Semantic Error: division by zero!");
+                    node->const_value = const_value1 / const_value2;
+                }
+                else if (node->value == "%") {
+                    if (const_value2 == 0) throw std::runtime_error("Semantic Error: modulo by zero!");
+                    node->const_value = const_value1 % const_value2;
+                }
+            }
+            node->variableID = ++Item_id_tot;
+        }
+        else if (node->value == "<<" || node->value == ">>") {
+            if (type1.type == NodeTypeType::Amp) type1 = *type1.inside_type;
+            if (type2.type == NodeTypeType::Amp) type2 = *type2.inside_type;
+            if (!is_number(type1) || !is_number(type2))
+                throw std::runtime_error("Semantic Error: bitwise shift operator type mismatch!");
+            node->actual_type = type1;
+            if (value1.has_value() && value2.has_value()) {
+                auto const_value1 = std::any_cast<long long>(value1);
+                auto const_value2 = std::any_cast<long long>(value2);
+                if (const_value2 >= 32) throw std::runtime_error("Semantic Error: bitwise shift count too large(>=32)!");
+                if (const_value2 < 0) throw std::runtime_error("Semantic Error: bitwise shift count negative!!");
+                if (node->value == "<<") node->const_value = const_value1 << const_value2;
+                else if (node->value == ">>") node->const_value = const_value1 >> const_value2;
+            }
+            node->variableID = ++Item_id_tot;
+        }
+        else if (node->value == "&" || node->value == "|" || node->value == "^") {
+            if (type1.type == NodeTypeType::Amp) type1 = *type1.inside_type;
+            if (type2.type == NodeTypeType::Amp) type2 = *type2.inside_type;
+            if (type1 == Bool && type2 == Bool) {
+                node->actual_type = Bool;
+                if (value1.has_value() && value2.has_value()) {
+                    auto const_value1 = std::any_cast<bool>(value1);
+                    auto const_value2 = std::any_cast<bool>(value2);
+                    if (node->value == "&") node->const_value = const_value1 & const_value2;
+                    else if (node->value == "|") node->const_value = const_value1 | const_value2;
+                    else if (node->value == "^") node->const_value = const_value1 ^ const_value2;
+                }
+            }
+            else {
+                Number_Type_Pair(type1, type2, "bitwise operator type mismatch!");
+                node->actual_type = type1;
+                if (value1.has_value() && value2.has_value()) {
+                    auto const_value1 = std::any_cast<long long>(value1);
+                    auto const_value2 = std::any_cast<long long>(value2);
+                    if (node->value == "&") node->const_value = const_value1 & const_value2;
+                    else if (node->value == "|") node->const_value = const_value1 | const_value2;
+                    else if (node->value == "^") node->const_value = const_value1 ^ const_value2;
+                }
+            }
+            node->variableID = ++Item_id_tot;
+        }
+        else if (node->value == "==" || node->value == "!=") {
+            while ((type1.type == NodeTypeType::Amp || type1.type == NodeTypeType::Mut_Amp) && (type2.type == NodeTypeType::Amp || type2.type == NodeTypeType::Mut_Amp)) {
+                type1 = *type1.inside_type;
+                type2 = *type2.inside_type;
+            }
+            node->actual_type = Bool;
+            //TODO
+            node->variableID = ++Item_id_tot;
+        }
+        else if (node->value == "<" || node->value == "<=" || node->value == ">" || node->value == ">=") {
+            while ((type1.type == NodeTypeType::Amp || type1.type == NodeTypeType::Mut_Amp) && (type2.type == NodeTypeType::Amp || type2.type == NodeTypeType::Mut_Amp)) {
+                type1 = *type1.inside_type;
+                type2 = *type2.inside_type;
+            }
+            node->actual_type = Bool;
+            //TODO
+            node->variableID = ++Item_id_tot;
+        }
     }
 }
 

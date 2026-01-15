@@ -4,6 +4,8 @@
 
 #include "basic.h"
 
+#include "../../../cmake-build-release/_deps/googletest-src/googlemock/include/gmock/gmock-matchers.h"
+
 AstNode::~AstNode() {
   for (auto child : children) {
     delete child;
@@ -14,7 +16,6 @@ AstNode::~AstNode() {
 std::vector<std::string> AstNode::show_node() const {
     std::vector<std::string> res;
     res.emplace_back("");
-    if (type == AstNodetype::Amp) res.back() = "Amp";
     if (type == AstNodetype::Break) res.back() = "Break";
     if (type == AstNodetype::Continue) res.back() = "Continue";
     if (type == AstNodetype::Else) res.back() = "Else";
@@ -28,7 +29,6 @@ std::vector<std::string> AstNode::show_node() const {
     if (type == AstNodetype::If) res.back() = "If";
     if (type == AstNodetype::Implementation) res.back() = "Implementation";
     if (type == AstNodetype::Loop) res.back() = "Loop";
-    if (type == AstNodetype::Mut) res.back() = "Mut";
     if (type == AstNodetype::Pattern) res.back() = "Pattern";
     if (type == AstNodetype::Program) res.back() = "Program";
     if (type == AstNodetype::Return) res.back() = "Return";
@@ -37,7 +37,9 @@ std::vector<std::string> AstNode::show_node() const {
     if (type == AstNodetype::Return_Cur) res.back() = "Return_Cur";
     if (type == AstNodetype::Struct) res.back() = "Struct";
     if (type == AstNodetype::Trait) res.back() = "Trait";
+    if (type == AstNodetype::TypedIdentifier) res.back() = "TypedIdentifier";
     if (type == AstNodetype::Type) res.back() = "Type";
+    if (type == AstNodetype::Quantifier) res.back() = "Quantifier";
     if (type == AstNodetype::While) res.back() = "While";
     if (type == AstNodetype::ArrayElements) res.back() = "ArrayElements";
     if (type == AstNodetype::ArrayIndex) res.back() = "ArrayIndex";

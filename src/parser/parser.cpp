@@ -223,89 +223,60 @@ void Parser::parser_FunctionParameters(AstNode *node) {
     node->type = AstNodetype::FunctionParameters;
 
     auto token = lexer.peek_next_token();
-    bool amp = false, is_mut = false;
-    if (token == (Token){TokenType::Operator, "&"}) {
-        lexer.get_next_token();
-        amp = true;
-        token = lexer.peek_next_token();
-    }
-    if (token == (Token){TokenType::Keyword, "mut"}) {
-        lexer.get_next_token();
-        is_mut = true;
-        token = lexer.peek_next_token();
-    }
 
-    bool is_comma = true;
-    if (token == (Token){TokenType::Keyword, "self"}) {
-        lexer.get_next_token();
-        token = lexer.peek_next_token();
-
-        auto new_node = new AstNode;
-        new_node->type = AstNodetype::Self;
-        node->children.push_back(new_node);
-        if (amp == true) {
-            auto amp_node = new AstNode;
-            amp_node->type = AstNodetype::Amp;
-            new_node->children.push_back(amp_node);
-        }
-        if (is_mut == true) {
-            auto mut_node = new AstNode;
-            mut_node->type = AstNodetype::Mut;
-            new_node->children.push_back(mut_node);
-        }
-
-        is_comma = false;
-        if (token == (Token){TokenType::Punctuation, ","}) {
-            lexer.get_next_token();
-            is_comma = true;
-            token = lexer.peek_next_token();
-        }
-    }
-
-    is_mut = false;
-    if (token == (Token){TokenType::Keyword, "mut"}) {
-        lexer.get_next_token();
-        is_mut = true;
-        token = lexer.peek_next_token();
-    }
-    while (token.type == TokenType::Identifier) {
+    bool is_comma = true, first = true;
+    while (token != (Token){TokenType::Punctuation, ")"}) {
         if (is_comma == false) throw std::runtime_error("RE");
         is_comma = false;
 
         auto new_node = new AstNode;
-        parser_TypedIdentifier(new_node, is_mut);
+        parser_TypedIdentifier(new_node, first); first = false;
         node->children.push_back(new_node);
 
         token = lexer.peek_next_token();
         if (token == (Token){TokenType::Punctuation, ","}) {
             lexer.get_next_token();
             is_comma = true;
-            token = lexer.peek_next_token();
-        }
-
-        is_mut = false;
-        if (token == (Token){TokenType::Keyword, "mut"}) {
-            lexer.get_next_token();
-            is_mut = false;
             token = lexer.peek_next_token();
         }
     }
 }
 
-void Parser::parser_TypedIdentifier(AstNode *node, bool is_mut) {
+void Parser::parser_TypedIdentifier(AstNode *node, bool can_self) {
     node->type = AstNodetype::TypedIdentifier;
-    node->value = lexer.expect(TokenType::Identifier).value;
-    lexer.expect({TokenType::Punctuation, ":"});
 
-    if (is_mut) {
+    auto token = lexer.peek_next_token();
+    if (token == (Token){TokenType::Operator, "&"}) {
+        lexer.get_next_token(); token = lexer.peek_next_token();
         auto new_node = new AstNode;
-        new_node->type = AstNodetype::Mut;
+        new_node->type = AstNodetype::Quantifier;
+        new_node->value = "&";
         node->children.push_back(new_node);
     }
 
-    auto new_node = new AstNode;
-    parser_Type(new_node);
-    node->children.push_back(new_node);
+    if (token == (Token){TokenType::Keyword, "mut"}) {
+        lexer.get_next_token(); token = lexer.peek_next_token();
+        auto new_node = new AstNode;
+        new_node->type = AstNodetype::Quantifier;
+        new_node->value = "mut";
+        node->children.push_back(new_node);
+    }
+
+    if (token == (Token){TokenType::Keyword, "self"}) {
+        if (can_self == false) throw std::runtime_error("RE");
+        lexer.get_next_token(); token = lexer.peek_next_token();
+        if (!node->children.empty() && token == (Token){TokenType::Punctuation, ":"})
+            throw std::runtime_error("RE");
+        node->type = AstNodetype::Self;
+    }
+    else {
+        node->value = lexer.expect(TokenType::Identifier).value;
+        lexer.expect((Token){TokenType::Punctuation, ":"});
+
+        auto new_node = new AstNode;
+        parser_Type(new_node);
+        node->children.push_back(new_node);
+    }
 }
 
 void Parser::parser_StructParameters(AstNode *node) {
@@ -313,7 +284,7 @@ void Parser::parser_StructParameters(AstNode *node) {
     auto token = lexer.peek_next_token();
 
     bool is_comma = true;
-    while (token.type == TokenType::Identifier) {
+    while (token != (Token){TokenType::Punctuation, "}"}) {
         if (is_comma == false) throw std::runtime_error("RE");
         is_comma = false;
 
@@ -331,14 +302,41 @@ void Parser::parser_StructParameters(AstNode *node) {
 }
 
 void Parser::parser_Type(AstNode *node) {
-    node->type = AstNodetype::Type;
-
     auto token = lexer.peek_next_token();
+
+    //reference type
+    if (token == (Token){TokenType::Operator, "&"} || token == (Token){TokenType::Operator, "&&"}) {
+        if (token == (Token){TokenType::Operator, "&&"}) {
+            auto new_node = new AstNode;
+            node->children.push_back(new_node);
+            node->type = AstNodetype::Unary_Operator;
+            node->value = "&";
+            node = new_node;
+        }
+
+        lexer.get_next_token();
+        auto new_node = new AstNode;
+        new_node->type = AstNodetype::Unary_Operator;
+        node->children.push_back(new_node);
+
+        token = lexer.peek_next_token();
+        if (token == (Token){TokenType::Keyword, "mut"}) {
+            lexer.get_next_token();
+            node->value = "&mut";
+        }
+        else node->value = "&";
+
+        node = new_node;
+        token = lexer.peek_next_token();
+    }
+
+    node->type = AstNodetype::Type;
 
     //unit type
     if (token == (Token){TokenType::Punctuation, "("}) {
         lexer.get_next_token();
         lexer.expect({TokenType::Punctuation, ")"});
+        node->value = "()";
         return ;
     }
 
@@ -356,28 +354,6 @@ void Parser::parser_Type(AstNode *node) {
         node->children.push_back(new_node);
 
         lexer.expect({TokenType::Punctuation, "]"});
-        return ;
-    }
-
-    //reference type
-    if (token == (Token){TokenType::Operator, "&"}) {
-        lexer.get_next_token();
-        auto new_node = new AstNode;
-        new_node->type = AstNodetype::Amp;
-        node->children.push_back(new_node);
-
-        token = lexer.peek_next_token();
-        if (token == (Token){TokenType::Keyword, "mut"}) {
-            lexer.get_next_token();
-            auto new_node = new AstNode;
-            new_node->type = AstNodetype::Mut;
-            node->children.push_back(new_node);
-        }
-
-        new_node = new AstNode;
-        parser_Type(new_node);
-        node->children.push_back(new_node);
-
         return ;
     }
 
@@ -632,6 +608,10 @@ AstNode* get_prefix(const Token& token) {
     }
     else if (token == (Token){TokenType::Keyword, "return"}) {
         node->type = AstNodetype::Return;
+    }
+    else if (token.type == TokenType::Operator) {
+        node->type = AstNodetype::Unary_Operator;
+        node->value = token.value;
     }
     return node;
 }
