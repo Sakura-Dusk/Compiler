@@ -4,7 +4,7 @@
 
 #include "basic.h"
 
-#include "../../../cmake-build-release/_deps/googletest-src/googlemock/include/gmock/gmock-matchers.h"
+// #include "../../../cmake-build-release/_deps/googletest-src/googlemock/include/gmock/gmock-matchers.h"
 
 AstNode::~AstNode() {
   for (auto child : children) {
@@ -89,7 +89,7 @@ std::string NodeType::show() const {
         case NodeTypeType::Str: return "(str)";
         case NodeTypeType::String: return "(String)";
         case NodeTypeType::Unit: return "()[Unit]";
-        case NodeTypeType::Struct:
+        case NodeTypeType::Struct: {
             res = "(struct){" + SE_name;
             bool first = true;
             for (auto& [name, field_type] : field->item_table) {
@@ -100,6 +100,7 @@ std::string NodeType::show() const {
             }
             res += "}";
             return res;
+        }
         case NodeTypeType::Enum: return "(enum){" + SE_name + "}";
         case NodeTypeType::Array: {
             res = "(Array)[";
@@ -107,7 +108,7 @@ std::string NodeType::show() const {
             res += "; " + std::to_string(item_length) + "]";
             return res;
         }
-        case NodeTypeType::Function:
+        case NodeTypeType::Function: {
             res = "(Function)(";
             bool firs = true;
             for (int i = 0; i < items_type.size(); i++) {
@@ -117,7 +118,8 @@ std::string NodeType::show() const {
             }
             res += ") -> (" + inside_type->show() + ")";
             return res;
-        case NodeTypeType::Method:
+        }
+        case NodeTypeType::Method: {
             res = self_type->show() + ".(";
             bool fir = true;
             for (int i = 0; i < items_type.size(); i++) {
@@ -127,6 +129,7 @@ std::string NodeType::show() const {
             }
             res += ") -> (" + inside_type->show() + ")";
             return res;
+        }
         case NodeTypeType::Type_of_Type: return "(" + inside_type->show() + ")_Type";
         case NodeTypeType::Amp: {
             std::string result = "&";
@@ -157,12 +160,13 @@ bool NodeType::operator==(const NodeType& other) const {
         case NodeTypeType::Array:
             return item_length == other.item_length &&
                    (inside_type && other.inside_type && *inside_type == *other.inside_type);
-        case NodeTypeType::Function:
+        case NodeTypeType::Function: {
             bool res = inside_type && other.inside_type && *inside_type == *other.inside_type &&
                        items_type.size() == other.items_type.size();
             for (int i = 0; i < items_type.size(); i++)
                 res &= items_type[i] == other.items_type[i];
             return res;
+        }
         case NodeTypeType::Type_of_Type:
             return inside_type && other.inside_type && *inside_type == *other.inside_type;
         case NodeTypeType::Amp:

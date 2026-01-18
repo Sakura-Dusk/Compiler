@@ -5,7 +5,7 @@
 
 #include "lexer.h"
 #include "parser/parser.h"
-#include "semantic/semantic_analyzer.h"
+#include "semantic/semantic.h"
 
 //if7 if10 array7 still with problems
 //about node type
@@ -74,18 +74,7 @@ int main() {
             AstNode* ast_root = parser.work();
             
             // 语义分析
-            SemanticAnalyzer semantic_analyzer(ast_root);
-            semantic_analyzer.analyze();
-            
-            if (semantic_analyzer.has_errors()) {
-                std::cout << "Semantic Errors in " << filePath << ":" << std::endl;
-                for (const auto& error : semantic_analyzer.get_errors()) {
-                    std::cout << "  " << error << std::endl;
-                }
-            } else {
-                std::cout << "Success: No semantic errors in " << filePath << std::endl;
-            }
-            
+            Semantic_check(ast_root);
         } catch (const std::exception& e) {
             std::cout << "Compile Error in " << filePath << ": " << e.what() << std::endl;
         } catch (...) {

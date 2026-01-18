@@ -9,11 +9,11 @@
 #include"../lexer.h"
 #include"../AST/node/basic.h"
 
-int Item_id_tot = 0;
+inline int Item_id_tot = 0;
 
 struct Unit_value{};
 
-void semantic_visit_node(AstNode*, AstNode*);
+void semantic_visit_node(AstNode*, AstNode*, AstNode*, AstNode*);
 
 void build_universe_scope(AstNode*);
 

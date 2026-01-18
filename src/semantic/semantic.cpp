@@ -77,6 +77,12 @@ bool is_number(const NodeType &A) {
 bool is_numberB(const NodeType &A) {
     return is_number(A) || A == Bool;
 }
+void Check_as_Operator_Pair(const NodeType& A, const NodeType& B, std::string RE_words) {
+    if (A == B) return ;
+    if (A == Never) return ;
+    if (A != Char && !is_numberB(A)) throw std::runtime_error(RE_words);
+    if (B != I32 && B != U32 && B != Isize && B != Usize) throw std::runtime_error(RE_words);
+}
 
 void Number_Type_Pair(NodeType& A, NodeType& B, std::string RE_words) {
     if (!is_number(A) || !is_number(B)) throw std::runtime_error(RE_words + "! should be number but not!");
@@ -193,13 +199,13 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
             son->children[0]->scope_value = son->scope_value;
             son->children[0]->scope_father = son->scope_father;
             son->scope_value->add_item("self", scope_item(Unit, std::any(), false, false, ++Item_id_tot));
-            semantic_visit_node(son->children[0], nullptr);
+            semantic_visit_node(son->children[0], nullptr, nullptr, nullptr);
             son->scope_value->item_table.erase("self");
 
             //FunctionReturnType
             son->children[1]->scope_value = son->scope_value;
             son->children[1]->scope_father = son->scope_father;
-            semantic_visit_node(son->children[1], nullptr);
+            semantic_visit_node(son->children[1], nullptr, nullptr, nullptr);
 
             NodeType return_type = son->children[1]->actual_type;
             NodeType T(NodeTypeType::Function, new NodeType(type_to_item(return_type)), -1);
@@ -270,7 +276,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
             if (son->children.size()) {
                 son->children[0]->scope_value = son->scope_value;
                 son->children[0]->scope_father = son->scope_father;
-                semantic_visit_node(son->children[0], nullptr);
+                semantic_visit_node(son->children[0], nullptr, nullptr, nullptr);
                 for (auto grand_son: son->children[0]->children) {
                     auto &each_type = type_to_item(grand_son->children[0]->actual_type);
                     son->scope_value->add_item("@" + grand_son->value, scope_item(each_type, std::any(), true, true, ++Item_id_tot));
@@ -303,11 +309,11 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
         if (son->type == AstNodetype::ConstantItem) {
 			son->children[0]->scope_value = son->scope_value;
             son->children[0]->scope_father = son->scope_father;
-            semantic_visit_node(son->children[0], nullptr);
+            semantic_visit_node(son->children[0], nullptr, nullptr, nullptr);
 
             son->children[1]->scope_value = son->scope_value;
             son->children[1]->scope_father = son->scope_father;
-            semantic_visit_node(son->children[1], nullptr);
+            semantic_visit_node(son->children[1], nullptr, nullptr, nullptr);
 
             NodeType const_type = type_to_item(son->children[0]->actual_type), expr_type = son->children[1]->actual_type;
             Expect_Type_match(const_type, expr_type, "constant item " + son->value + " type mismatch!");
@@ -328,7 +334,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
             T.field->add_type("Self", scope_item(item_to_type(T), std::any(), false, false, ++Item_id_tot));
             son->children[0]->scope_value = son->scope_value;
             son->children[0]->scope_father = son->scope_father;
-            semantic_visit_node(son->children[0], nullptr);
+            semantic_visit_node(son->children[0], nullptr, nullptr, nullptr);
         }
     }
 }
@@ -700,7 +706,48 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
                 type2 = *type2.inside_type;
             }
             node->actual_type = Bool;
-            //TODO
+
+            if (type1 == Char && type2 == type1) {
+                if (value1.has_value() && value2.has_value()) {
+                    auto const_value1 = std::any_cast<char>(value1);
+                    auto const_value2 = std::any_cast<char>(value2);
+                    if (node->value == "==") node->const_value = (const_value1 == const_value2);
+                    else if (node->value == "!=") node->const_value = (const_value1 != const_value2);
+                }
+            }
+            else if (type1 == Bool && type2 == type1) {
+                if (value1.has_value() && value2.has_value()) {
+                    auto const_value1 = std::any_cast<bool>(value1);
+                    auto const_value2 = std::any_cast<bool>(value2);
+                    if (node->value == "==") node->const_value = (const_value1 == const_value2);
+                    else if (node->value == "!=") node->const_value = (const_value1 != const_value2);
+                }
+            }
+            else if ((type1 == Never || type2 == Unit) && (type2 == Never || type1 == Unit)) {
+                if (value1.has_value() && value2.has_value()) {
+                    if (node->value == "==") node->const_value = true;
+                    else if (node->value == "!=") node->const_value = false;
+                }
+            }
+            else if (type1.type == NodeTypeType::Enum && type2.type == NodeTypeType::Enum) {
+                if (type1.FM_id != type2.FM_id) throw std::runtime_error("Semantic Error: enum type mismatch in equality operator!");
+                if (value1.has_value() && value2.has_value()) {
+                    auto const_value1 = std::any_cast<long long>(value1);
+                    auto const_value2 = std::any_cast<long long>(value2);
+                    if (node->value == "==") node->const_value = (const_value1 == const_value2);
+                    else if (node->value == "!=") node->const_value = (const_value1 != const_value2);
+                }
+            }
+            else {
+                Number_Type_Pair(type1, type2, "bitwise operator type mismatch!");
+                if (value1.has_value() && value2.has_value()) {
+                    auto const_value1 = std::any_cast<long long>(value1);
+                    auto const_value2 = std::any_cast<long long>(value2);
+                    if (node->value == "==") node->const_value = (const_value1 == const_value2);
+                    else if (node->value == "!=") node->const_value = (const_value1 != const_value2);
+                }
+            }
+
             node->variableID = ++Item_id_tot;
         }
         else if (node->value == "<" || node->value == "<=" || node->value == ">" || node->value == ">=") {
@@ -709,9 +756,300 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
                 type2 = *type2.inside_type;
             }
             node->actual_type = Bool;
-            //TODO
+
+            if (type1 == Char && type2 == type1) {
+                if (value1.has_value() && value2.has_value()) {
+                    auto const_value1 = std::any_cast<char>(value1);
+                    auto const_value2 = std::any_cast<char>(value2);
+                    if (node->value == "<") node->const_value = (const_value1 < const_value2);
+                    else if (node->value == "<=") node->const_value = (const_value1 <= const_value2);
+                    else if (node->value == ">") node->const_value = (const_value1 > const_value2);
+                    else if (node->value == ">=") node->const_value = (const_value1 >= const_value2);
+                }
+            }
+            else if (type1 == Bool && type2 == type1) {
+                if (value1.has_value() && value2.has_value()) {
+                    auto const_value1 = std::any_cast<bool>(value1);
+                    auto const_value2 = std::any_cast<bool>(value2);
+                    if (node->value == "<") node->const_value = (const_value1 < const_value2);
+                    else if (node->value == "<=") node->const_value = (const_value1 <= const_value2);
+                    else if (node->value == ">") node->const_value = (const_value1 > const_value2);
+                    else if (node->value == ">=") node->const_value = (const_value1 >= const_value2);
+                }
+            }
+            else {
+                Number_Type_Pair(type1, type2, "relational operator type mismatch!");
+                if (value1.has_value() && value2.has_value()) {
+                    auto const_value1 = std::any_cast<long long>(value1);
+                    auto const_value2 = std::any_cast<long long>(value2);
+                    if (node->value == "<") node->const_value = (const_value1 < const_value2);
+                    else if (node->value == "<=") node->const_value = (const_value1 <= const_value2);
+                    else if (node->value == ">") node->const_value = (const_value1 > const_value2);
+                    else if (node->value == ">=") node->const_value = (const_value1 >= const_value2);
+                }
+            }
+
             node->variableID = ++Item_id_tot;
         }
+        else if (node->value == "&&" || node->value == "||") {
+            if (type1.type == NodeTypeType::Amp) type1 = *type1.inside_type;
+            if (type2.type == NodeTypeType::Amp) type2 = *type2.inside_type;
+            if (type1 != type2) throw std::runtime_error("Semantic Error: logical operator type mismatch!");
+            if (type1 != Bool) throw std::runtime_error("Semantic Error: logical operator type mismatch!");
+            node->actual_type = Bool;
+            if (value1.has_value() && value2.has_value()) {
+                auto const_value1 = std::any_cast<bool>(value1);
+                auto const_value2 = std::any_cast<bool>(value2);
+                if (node->value == "&&") node->const_value = const_value1 && const_value2;
+                else if (node->value == "||") node->const_value = const_value1 || const_value2;
+            }
+
+            node->variableID = ++Item_id_tot;
+        }
+        else if (node->value == "=") {
+            if (node->children[0]->is_mut == false)
+                throw std::runtime_error("Semantic Error: cannot assign to immutable variable!");
+            if (type1.type == NodeTypeType::Amp || type2.type == NodeTypeType::Mut_Amp)
+                type2.type = NodeTypeType::Amp;
+            Expect_Type_match(type1, type2, "assignment operator type mismatch!");
+            node->actual_type = Unit;
+        }
+        else if (node->value == "+=" || node->value == "-=" || node->value == "*=" || node->value == "/=" || node->value == "%=" || node->value == "<<=" || node->value == ">>=") {
+            if (type1.type == NodeTypeType::Amp) type1 = *type1.inside_type;
+            if (node->children[0]->is_mut == false)
+                throw std::runtime_error("Semantic Error: cannot assign to immutable variable!");
+            Number_Type_Pair(type1, type2, "relational operator type mismatch!");
+            node->actual_type = Unit;
+        }
+        else if (node->value == "&=" || node->value == "|=" || node->value == "^=") {
+            if (type1.type == NodeTypeType::Amp) type1 = *type1.inside_type;
+            if (node->children[0]->is_mut == false)
+                throw std::runtime_error("Semantic Error: cannot assign to immutable variable!");
+            Type_Pair(type1, type2, "relational operator type mismatch!");
+            node->actual_type = Unit;
+        }
+        else if (node->value == "::") {
+            auto Type = node->children[0]->actual_type;
+            while (Type.type == NodeTypeType::Amp || Type.type == NodeTypeType::Mut_Amp)
+                Type = *Type.inside_type;
+            if (Type.type != NodeTypeType::Type_of_Type || (Type.inside_type->type != NodeTypeType::Struct && Type.inside_type->type != NodeTypeType::Enum))
+                throw std::runtime_error("Semantic Error: only struct or enum type has associated items!");
+            Type = *Type.inside_type;
+            if (Type.type == NodeTypeType::Struct) {//Struct
+                auto value = Type.field->get_item(node->children[1]->value);
+                if (value.type == UnKnown) throw std::runtime_error("Semantic Error: struct has no associated item " + node->children[1]->value + "!");
+                if (value.type.type == NodeTypeType::Method) {
+                    value.type.type = NodeTypeType::Function;
+                    value.type.self_type = nullptr;
+                    value.type.items_type.push_back(value.type.self_type);
+                }
+                node->actual_type = value.type;
+                node->is_variable = node->children[1]->is_variable;
+                node->const_value = value.const_value;
+                node->variableID = value.ID;
+            }
+            else {//Enum
+                if (!Type.items_index->contains(node->children[1]->value)) throw std::runtime_error("Semantic Error: enum has no variant " + node->children[1]->value + "!");
+                node->actual_type = Type;
+                node->const_value = (long long)(*Type.items_index)[node->children[1]->value];
+            }
+        }
+        else if (node->value == ".") {
+            auto Type = node->children[0]->actual_type;
+            node->is_mut = node->children[0]->is_mut;
+            node->is_variable = node->children[0]->is_variable;
+            while (Type.type == NodeTypeType::Amp || Type.type == NodeTypeType::Mut_Amp) {
+                if (Type.type == NodeTypeType::Mut_Amp) node->is_mut = true;
+                else node->is_mut = false;
+                Type = *Type.inside_type;
+            }
+            if (Type.type == NodeTypeType::Array && node->children[1]->type == AstNodetype::Identifier && node->children[1]->value == "len") {//function .len
+                node->actual_type = (NodeType){NodeTypeType::Function, &Usize, 0};
+                node->variableID = 1;
+            }
+            else if ((Type == U32 || Type == Usize || Type == UInt || Type == Int) && node->children[1]->type == AstNodetype::Identifier && node->children[1]->value == "to_string") {
+                if (node->children[0]->const_value.has_value() && node->father->type == AstNodetype::FunctionCall) {
+                    node->father->const_value = std::to_string(std::any_cast<long long>(node->children[0]->const_value));
+                }
+                node->actual_type = (NodeType){NodeTypeType::Function, &String, 0};
+            }
+            else {
+                if (Type.type != NodeTypeType::Struct) throw std::runtime_error("Semantic Error: only struct type has fields!");
+                if (node->children[1]->type != AstNodetype::Identifier) throw std::runtime_error("Semantic Error: invalid struct field access!");
+
+                auto value = Type.field->get_item("@" + node->children[1]->value);
+                if (value.type == UnKnown || father->type == AstNodetype::FunctionCall) {
+                    value = Type.field->get_item(node->children[1]->value);
+                    if (value.type == UnKnown || value.type.type != NodeTypeType::Method) throw std::runtime_error("Semantic Error: struct has no field " + node->children[1]->value + "!");
+                }
+                if (value.type.type == NodeTypeType::Method) {
+                    if (value.type.is_mutable && !node->is_mut && node->is_variable) throw std::runtime_error("Semantic Error: cannot call mutable method on immutable variable!");
+                    value.type.type = NodeTypeType::Function;
+                    value.type.self_type = nullptr;
+                    node->variableID = value.ID;
+                }
+                node->actual_type = value.type;
+                if (!value.is_mutable) node->is_mut = false;
+            }
+
+            if (node->actual_type.type == NodeTypeType::Function) node->is_mut = false;
+        }
+        else if (node->value == "as") {
+            type2 = type_to_item(type2);
+            Check_as_Operator_Pair(type1, type2, "value type mismatch in as operator!");
+            node->actual_type = type2;
+            if (value1.has_value()) {
+                if (type1 == type2 || is_number(type1)) node->const_value = value1;
+                else if (type1 == Bool) node->const_value = static_cast<long long>(std::any_cast<bool>(value1));
+                else if (type1 == Char) node->const_value = static_cast<long long>(std::any_cast<char>(value1));
+            }
+            node->variableID = ++Item_id_tot;
+        }
+    }
+    else if (node->type == AstNodetype::Char_Literal) {
+        node->actual_type = Char;
+        if (node->value[0] == '\\') {
+            if (node->value[1] == 'n') node->const_value = '\n';
+            else if (node->value[1] == 't') node->const_value = '\t';
+            else if (node->value[1] == 'r') node->const_value = '\r';
+            else if (node->value[1] == '\\') node->const_value = '\\';
+            else if (node->value[1] == '\'') node->const_value = '\'';
+            else if (node->value[1] == '\"') node->const_value = '\"';
+            else if (node->value[1] == '\0') node->const_value = '\0';
+            else throw std::runtime_error("Semantic Error: unknown escape character in char literal!");
+        }
+        else node->const_value = node->value[0];
+    }
+    else if (node->type == AstNodetype::Integer_Literal) {
+        auto str = node->value;
+        if (str.size() > 3 && str.substr(str.size() - 3, 3) == "i32") {
+            node->actual_type = I32;
+            node->const_value = static_cast<long long>(std::stoi(str.substr(0, str.size() - 3), nullptr, 0));
+        }
+        else if (str.size() > 4 && str.substr(str.size() - 4, 3) == "_i32") {
+            node->actual_type = I32;
+            node->const_value = static_cast<long long>(std::stoi(str.substr(0, str.size() - 4), nullptr, 0));
+        }
+        else if (str.size() > 3 && str.substr(str.size() - 3, 3) == "u32") {
+            node->actual_type = U32;
+            node->const_value = static_cast<long long>(std::stoul(str.substr(0, str.size() - 3), nullptr, 0));
+        }
+        else if (str.size() > 4 && str.substr(str.size() - 4, 3) == "_u32") {
+            node->actual_type = U32;
+            node->const_value = static_cast<long long>(std::stoul(str.substr(0, str.size() - 4), nullptr, 0));
+        }
+        else if (str.size() > 5 && str.substr(str.size() - 5, 4) == "isize") {
+            node->actual_type = Isize;
+            node->const_value = std::stoll(str.substr(0, str.size() - 5), nullptr, 0);
+        }
+        else if (str.size() > 6 && str.substr(str.size() - 6, 4) == "_isize") {
+            node->actual_type = Isize;
+            node->const_value = std::stoll(str.substr(0, str.size() - 6), nullptr, 0);
+        }
+        else if (str.size() > 5 && str.substr(str.size() - 5, 4) == "usize") {
+            node->actual_type = Usize;
+            node->const_value = static_cast<long long>(std::stoull(str.substr(0, str.size() - 5), nullptr, 0));
+        }
+        else if (str.size() > 6 && str.substr(str.size() - 6, 4) == "_usize") {
+            node->actual_type = Usize;
+            node->const_value = static_cast<long long>(std::stoull(str.substr(0, str.size() - 6), nullptr, 0));
+        }
+        else {//I need to infer it by myself
+            auto res = std::stoll(str, nullptr, 0);
+            node->const_value = res;
+            if (father->type == AstNodetype::Unary_Operator && father->value == "-") res = -res;
+            if (res > UINT_MAX || res < INT_MIN) throw std::runtime_error("Semantic Error: invalid integer literal!");
+            if (res >= 0 && res <= INT_MAX) node->actual_type = Int;
+            else if (res < 0) node->actual_type = IInt;
+            else node->actual_type = UInt;
+        }
+    }
+    else if (node->type == AstNodetype::String_Literal) {
+        node->actual_type = Str_Amp;
+        node->const_value = node->value;
+    }
+    else if (node->type == AstNodetype::Float_Literal) {
+        //yeah you are right, cause you are not you
+    }
+    else if (node->type == AstNodetype::Bool_Literal) {
+        node->actual_type = Bool;
+        node->const_value = node->value == "true";
+    }
+    else if (node->type == AstNodetype::Break) {
+        node->actual_type = Never;
+        if (loop_father == nullptr) throw std::runtime_error("Semantic Error: no loop father!");
+        if (loop_father->type == AstNodetype::While) {
+            if (loop_father->now_go_son_id == 0) throw std::runtime_error("Semantic Error: cannot break in while condition!");
+            if (node->children.size()) throw std::runtime_error("Semantic Error: cannot return sth in while condition!");
+        }
+        else {//AstNodetype::Loop
+            auto res_type = !node->children.empty() ? node->children.back()->actual_type : Unit;
+            if (res_type != Never) {
+                if (loop_father->actual_type == UnKnown) loop_father->actual_type = res_type;
+                else Expect_Type_match(loop_father->actual_type, res_type, "break expression type mismatch!");
+            }
+        }
+    }
+    else if (node->type == AstNodetype::Continue) {
+        node->actual_type = Never;
+        if (loop_father == nullptr) throw std::runtime_error("Semantic Error: no loop father!");
+    }
+    else if (node->type == AstNodetype::Return) {
+        node->actual_type = Never;
+        auto res_type = Unit;
+        if (function_father == nullptr) throw std::runtime_error("Semantic Error: no function father!");
+        if (!node->children.empty()) res_type = node->children.back()->actual_type;
+        auto match_type = type_to_item(function_father->children[1]->actual_type);
+        Expect_Type_match(match_type, res_type, "Semantic Error: return expression type mismatch!");
+    }
+    else if (node->type == AstNodetype::FunctionCall) {
+        auto function_type = node->children[0]->actual_type;
+        if (function_type.type != NodeTypeType::Function) throw std::runtime_error("Semantic Error: function call but name is not a function!");
+        if (function_type.items_type.size() != node->children[1]->children.size()) throw std::runtime_error("Semantic Error: function call but args number not match!");
+        for (int i = 0; i < function_type.items_type.size(); i++) {
+            auto type1 = *function_type.items_type[i];
+            auto type2 = node->children[1]->children[i]->actual_type;
+            Expect_Type_match(type1, type2, "Semantic Error: function call but args number type mismatch at item " + std::to_string(i) + "![0 index]");
+        }
+        node->actual_type = *function_type.inside_type;
+        if (node->actual_type != Unit)
+            node->variableID = ++Item_id_tot;
+    }
+    else if (node->type == AstNodetype::ArrayIndex) {
+        auto type1 = node->children[0]->actual_type;
+        auto type2 = node->children[1]->actual_type;
+        auto value1 = node->children[0]->const_value;
+        auto value2 = node->children[1]->const_value;
+        node->is_mut = node->children[0]->is_mut;
+        node->is_variable = node->children[0]->is_variable;
+        while (type1.type == NodeTypeType::Mut_Amp || type1.type == NodeTypeType::Amp) {
+            node->is_mut = type1.type == NodeTypeType::Mut_Amp;
+            type1 = *type1.inside_type;
+        }
+        if (type1.type != NodeTypeType::Array || (type2 != Int && type2 != UInt && type2 != Usize)) throw std::runtime_error("Semantic Error: array index type mismatch!");
+        node->actual_type = *type1.inside_type;
+        if (value2.has_value()) {
+            auto index_value = static_cast<unsigned int>(std::any_cast<long long>(value2));
+            if (type1.item_length <= index_value) throw std::runtime_error("Semantic Error: array index value out of range");
+            if (value1.has_value()) node->const_value = std::any_cast<std::vector<std::any>>(value1)[index_value];
+        }
+    }
+    else if (node->type == AstNodetype::StructField) {
+        auto Type = node->children[0]->actual_type;
+        if (Type.type != NodeTypeType::Type_of_Type || Type.inside_type->type != NodeTypeType::Struct) throw std::runtime_error("Semantic Error: struct field type mismatch!");
+        auto inside_type = Type.inside_type;
+        std::vector<std::string> Name;
+        for (auto child: node->children[1]->children) {
+            auto name = node->value;
+            auto type1 = inside_type->field->get_item("@" + name).type, type2 = child->children[0]->actual_type;
+            Name.push_back(name);
+            Expect_Type_match(type1, type2, "Semantic Error: struct field type mismatch!");
+        }
+        std::sort(Name.begin(), Name.end());
+        Name.erase(std::unique(Name.begin(), Name.end()), Name.end());
+        if (Name.size() != Type.items_type.size()) throw std::runtime_error("Semantic Error: struct field lost some item!");
+        if (Name.size() != node->children[1]->children.size()) throw std::runtime_error("Semantic Error: struct field give two same item!");
+        node->actual_type = *Type.inside_type;
     }
 }
 
@@ -719,7 +1057,8 @@ void build_universe_scope(AstNode* node) {
     node->scope_value = new Scope();
     node->scope_father = nullptr;
 
-    Item_id_tot = 0;
+    Item_id_tot = 1;
+    //id = 1 is for function .len
 
     NodeType funct = NodeType(NodeTypeType::Function, &Unit, 0);
     funct.items_type.push_back(&I32); funct.is_exit = true;
