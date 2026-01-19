@@ -316,7 +316,7 @@ void Parser::parser_Type(AstNode *node) {
 
         lexer.get_next_token();
         auto new_node = new AstNode;
-        new_node->type = AstNodetype::Unary_Operator;
+        node->type = AstNodetype::Unary_Operator;
         node->children.push_back(new_node);
 
         token = lexer.peek_next_token();

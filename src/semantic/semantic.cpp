@@ -8,6 +8,10 @@
 
 #include "../../cmake-build-release/_deps/googletest-src/googletest/include/gtest/internal/gtest-port.h"
 
+void Show_vector_string(std::vector<std::string> s) {
+    for (auto str: s) std::cout << str << std::endl;
+}
+
 std::string rename_in_dependency(AstNode* node) {
   	if (node->type == AstNodetype::Implementation) {
   		return "impl@" + rename_in_dependency(node->children[0]);
@@ -27,6 +31,7 @@ bool is_item(AstNode* node) {
 //just like "i32" in code show as a type, it shows a type but its actual_type is a typetype, so we need to convert it to i32
 NodeType& type_to_item(NodeType &a) {
   	if (a == Unit) return a;
+    // std::cout << a.show() << std::endl;
     if (a.type != NodeTypeType::Type_of_Type) throw std::runtime_error("Semantic Error: expected type type!");
     return *a.inside_type;
 }
@@ -111,14 +116,14 @@ void Type_Pair(NodeType& A, NodeType& B, std::string RE_words) {
 }
 
 scope_item& find_scope_type(Scope* scope_value, const AstNode* scope_father, const std::string& name) {
-    auto res = scope_value->get_type(name);
+    auto& res = scope_value->get_type(name);
     if (res.type != NodeTypeType::Unknown) return res;
     if (scope_father == nullptr) return res;
     return find_scope_type(scope_father->scope_value, scope_father->scope_father, name);
 }
 
 scope_item& find_scope_item(Scope* scope_value, const AstNode* scope_father, const std::string& name) {
-    auto res = scope_value->get_item(name);
+    auto& res = scope_value->get_item(name);
     if (res.type != NodeTypeType::Unknown) return res;
     if (scope_father == nullptr) return res;
     return find_scope_item(scope_father->scope_value, scope_father->scope_father, name);
@@ -340,7 +345,6 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
 }
 
 void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop_father = nullptr, AstNode* function_father = nullptr) {
-    //TODO: implement semantic analysis visit
     node->father = father;
     if (node->actual_type.type != NodeTypeType::Unknown) return ;//already done
     if (node->type == AstNodetype::Statements) {
@@ -373,6 +377,11 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
             node->must_break |= child->must_break;
         }
     }
+
+    // std::cout << "start semantic check node : " << std::endl;
+    // auto opt_str = node->show_node();
+    // for (auto str: opt_str) std::cout << str << std::endl;
+    // std::cout << "----------\n";
 
     //then update state about exist_return, exist_break, must_break
     if (node->type == AstNodetype::Function) {
@@ -503,6 +512,7 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         node->const_value = node->children[0]->const_value;
     }
     else if (node->type == AstNodetype::LetStatement) {
+        // Show_vector_string(node->children[1]->show_node());
         auto var_type = type_to_item(node->children[1]->actual_type);
         auto expr_type = node->children[2]->actual_type;
         Expect_Type_match(var_type, expr_type, "let statement " + node->children[0]->value + " type mismatch!");
@@ -515,7 +525,8 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         if (node->children[0]->value == "mut") value.is_mutable = true;
         node->actual_type = var_type;
         node->variableID = value.ID;
-        if (find_scope_item(node->scope_value, node->scope_father, node->value).is_uncoverable) throw std::runtime_error("Semantic Error: redefinition of a uncoverable variable " + node->value + "!");
+        auto item = find_scope_item(node->scope_value, node->scope_father, node->value);
+        if (item.is_uncoverable) throw std::runtime_error("Semantic Error: redefinition of a uncoverable variable " + node->value + "!");
         if (node->value != "_") node->scope_value->add_item(node->value, value);
     }
     else if (node->type == AstNodetype::Expression) {

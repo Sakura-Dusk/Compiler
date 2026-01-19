@@ -12,38 +12,40 @@
 
 int main() {
     std::vector<std::string> testFiles = {
-        "testcases/testcases/array1.in",
-        "testcases/testcases/array2.in",
-        "testcases/testcases/array3.in",
-        "testcases/testcases/array4.in",
-        "testcases/testcases/array5.in",
-        "testcases/testcases/array6.in",
-        "testcases/testcases/array7.in",
-        "testcases/testcases/array8.in",
+        "testcases/testcases/comprehensive15.in",
 
-        "testcases/testcases/if1.in",
-        "testcases/testcases/if2.in",
-        "testcases/testcases/if3.in",
-        "testcases/testcases/if4.in",
-        "testcases/testcases/if5.in",
-        "testcases/testcases/if6.in",
-        "testcases/testcases/if7.in",
-        "testcases/testcases/if8.in",
-        "testcases/testcases/if9.in",
-        "testcases/testcases/if10.in",
-        "testcases/testcases/if11.in",
-        "testcases/testcases/if12.in",
-        "testcases/testcases/if13.in",
-        "testcases/testcases/if14.in",
-        "testcases/testcases/if15.in",
-
-        "testcases/testcases/loop9.in",
+        // "testcases/testcases/array1.in",
+        // "testcases/testcases/array2.in",
+        // "testcases/testcases/array3.in",
+        // "testcases/testcases/array4.in",
+        // "testcases/testcases/array5.in",
+        // "testcases/testcases/array6.in",
+        // "testcases/testcases/array7.in",
+        // "testcases/testcases/array8.in",
+        //
+        // "testcases/testcases/if1.in",
+        // "testcases/testcases/if2.in",
+        // "testcases/testcases/if3.in",
+        // "testcases/testcases/if4.in",
+        // "testcases/testcases/if5.in",
+        // "testcases/testcases/if6.in",
+        // "testcases/testcases/if7.in",
+        // "testcases/testcases/if8.in",
+        // "testcases/testcases/if9.in",
+        // "testcases/testcases/if10.in",
+        // "testcases/testcases/if11.in",
+        // "testcases/testcases/if12.in",
+        // "testcases/testcases/if13.in",
+        // "testcases/testcases/if14.in",
+        // "testcases/testcases/if15.in",
+        //
+        // "testcases/testcases/loop9.in",
     };
     
     for (const auto& filePath : testFiles) {
         std::cout << "\n=== Testing " << filePath << " ===" << std::endl;
         
-        std::ifstream inputFile("../" + filePath);
+        std::ifstream inputFile("" + filePath);
         if (!inputFile.is_open()) {
             std::cerr << "Error: Could not open file " << filePath << std::endl;
             continue;
@@ -54,24 +56,12 @@ int main() {
         inputFile.close();
 
         try {
-            // 词法分析
-            Lexer lexer(rustCode);
-            std::vector<Token> tokens = lexer.tokenizeRustCode();
-
-            bool hasLexError = false;
-            for (const auto& token : tokens) {
-                if (token.type == TokenType::Unknown) {
-                    std::cout << "Lexical Error in " << filePath << std::endl;
-                    hasLexError = true;
-                    break;
-                }
-            }
-            
-            if (hasLexError) continue;
-
             // 语法分析
             auto parser = Parser(rustCode);
             AstNode* ast_root = parser.work();
+
+            // auto opt = ast_root->show_tree();
+            // for (auto str: opt) std::cout << str << std::endl;
             
             // 语义分析
             Semantic_check(ast_root);

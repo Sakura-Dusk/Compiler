@@ -128,7 +128,7 @@ public:
     NodeType actual_type;
     std::any const_value;
 
-    Scope* scope_value;
+    Scope*scope_value;
     AstNode* scope_father;
 
     int now_go_son_id;
