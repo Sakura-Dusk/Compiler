@@ -12,7 +12,8 @@
 
 int main() {
     std::vector<std::string> testFiles = {
-        "testcases/testcases/comprehensive15.in",
+        "testcases/testcases/test.in",
+        // "testcases/testcases/comprehensive15.in",
 
         // "testcases/testcases/array1.in",
         // "testcases/testcases/array2.in",

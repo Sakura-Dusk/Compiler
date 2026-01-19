@@ -100,16 +100,15 @@ void Parser::parser_Struct(AstNode *node) {
     lexer.expect({TokenType::Keyword, "struct"});
     node->value = lexer.expect(TokenType::Identifier).value;
 
-    auto new_node = new AstNode;
-    new_node->type = AstNodetype::StructParameters;
-    node->children.push_back(new_node);
-
     auto token = lexer.peek_next_token();
     if (token == (Token){TokenType::Punctuation, ";"}) {
         lexer.get_next_token();
     }
     else {
         lexer.expect({TokenType::Punctuation, "{"});
+        auto new_node = new AstNode;
+        new_node->type = AstNodetype::StructParameters;
+        node->children.push_back(new_node);
         parser_StructParameters(new_node);
         lexer.expect({TokenType::Punctuation, "}"});
     }
@@ -180,21 +179,17 @@ void Parser::parser_Implementation(AstNode *node) {
     node->type = AstNodetype::Implementation;
     lexer.expect({TokenType::Keyword, "impl"});
 
-    auto new_node = new AstNode;
-    bool is_Identifier = (lexer.peek_next_token().type == TokenType::Identifier);
-    node->children.push_back(new_node);
-    parser_Type(new_node);
+    node->value = lexer.expect(TokenType::Identifier).value;
 
     if (lexer.peek_next_token() == (Token){TokenType::Keyword, "for"}) {
-        if (is_Identifier == false) throw std::runtime_error("RE");
         lexer.get_next_token();
-        new_node = new AstNode;
+        auto new_node = new AstNode;
         node->children.push_back(new_node);
         parser_Type(new_node);
     }
 
     lexer.expect({TokenType::Punctuation, "{"});
-    new_node = new AstNode;
+    auto new_node = new AstNode;
     node->children.push_back(new_node);
     parser_AssociatedItem(new_node);
     lexer.expect({TokenType::Punctuation, "}"});
