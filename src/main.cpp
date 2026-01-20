@@ -13,34 +13,6 @@
 int main() {
     std::vector<std::string> testFiles = {
         "testcases/testcases/test.in",
-        // "testcases/testcases/comprehensive15.in",
-
-        // "testcases/testcases/array1.in",
-        // "testcases/testcases/array2.in",
-        // "testcases/testcases/array3.in",
-        // "testcases/testcases/array4.in",
-        // "testcases/testcases/array5.in",
-        // "testcases/testcases/array6.in",
-        // "testcases/testcases/array7.in",
-        // "testcases/testcases/array8.in",
-        //
-        // "testcases/testcases/if1.in",
-        // "testcases/testcases/if2.in",
-        // "testcases/testcases/if3.in",
-        // "testcases/testcases/if4.in",
-        // "testcases/testcases/if5.in",
-        // "testcases/testcases/if6.in",
-        // "testcases/testcases/if7.in",
-        // "testcases/testcases/if8.in",
-        // "testcases/testcases/if9.in",
-        // "testcases/testcases/if10.in",
-        // "testcases/testcases/if11.in",
-        // "testcases/testcases/if12.in",
-        // "testcases/testcases/if13.in",
-        // "testcases/testcases/if14.in",
-        // "testcases/testcases/if15.in",
-        //
-        // "testcases/testcases/loop9.in",
     };
     
     for (const auto& filePath : testFiles) {
@@ -61,8 +33,8 @@ int main() {
             auto parser = Parser(rustCode);
             AstNode* ast_root = parser.work();
 
-            // auto opt = ast_root->show_tree();
-            // for (auto str: opt) std::cout << str << std::endl;
+            auto opt = ast_root->show_tree();
+            for (auto str: opt) std::cout << str << std::endl;
             
             // 语义分析
             Semantic_check(ast_root);

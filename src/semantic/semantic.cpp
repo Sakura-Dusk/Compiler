@@ -8,13 +8,60 @@
 
 #include "../../cmake-build-release/_deps/googletest-src/googletest/include/gtest/internal/gtest-port.h"
 
+std::string show_AstNodetype(AstNodetype type) {
+    if (type == AstNodetype::Break) return "Break";
+    if (type == AstNodetype::Continue) return "Continue";
+    if (type == AstNodetype::Else) return "Else";
+    if (type == AstNodetype::Enumeration) return "Enumeration";
+    if (type == AstNodetype::Expression) return "Expression";
+    if (type == AstNodetype::GroupExpression) return "GroupExpression";
+    if (type == AstNodetype::Field) return "Field";
+    if (type == AstNodetype::Fields) return "Fields";
+    if (type == AstNodetype::Function) return "Function";
+    if (type == AstNodetype::Identifier) return "Identifier";
+    if (type == AstNodetype::If) return "If";
+    if (type == AstNodetype::Implementation) return "Implementation";
+    if (type == AstNodetype::Loop) return "Loop";
+    if (type == AstNodetype::Pattern) return "Pattern";
+    if (type == AstNodetype::Program) return "Program";
+    if (type == AstNodetype::Return) return "Return";
+    if (type == AstNodetype::Self) return "Self";
+    if (type == AstNodetype::Statements) return "Statements";
+    if (type == AstNodetype::Return_Cur) return "Return_Cur";
+    if (type == AstNodetype::Struct) return "Struct";
+    if (type == AstNodetype::Trait) return "Trait";
+    if (type == AstNodetype::TypedIdentifier) return "TypedIdentifier";
+    if (type == AstNodetype::Type) return "Type";
+    if (type == AstNodetype::Quantifier) return "Quantifier";
+    if (type == AstNodetype::While) return "While";
+    if (type == AstNodetype::ArrayElements) return "ArrayElements";
+    if (type == AstNodetype::ArrayIndex) return "ArrayIndex";
+    if (type == AstNodetype::AssociatedItem) return "AssociatedItem";
+    if (type == AstNodetype::Binary_Operator) return "Binary_Operator";
+    if (type == AstNodetype::Bool_Literal) return "Bool_Literal";
+    if (type == AstNodetype::CallParams) return "CallParams";
+    if (type == AstNodetype::Char_Literal) return "Char_Literal";
+    if (type == AstNodetype::ConstantItem) return "ConstantItem";
+    if (type == AstNodetype::Float_Literal) return "Float_Literal";
+    if (type == AstNodetype::FunctionCall) return "FunctionCall";
+    if (type == AstNodetype::FunctionParameters) return "FunctionParameters";
+    if (type == AstNodetype::Integer_Literal) return "Integer_Literal";
+    if (type == AstNodetype::LetStatement) return "LetStatement";
+    if (type == AstNodetype::String_Literal) return "String_Literal";
+    if (type == AstNodetype::StructField) return "StructField";
+    if (type == AstNodetype::StructParameters) return "StructParameters";
+    if (type == AstNodetype::TypedIdentifier) return "TypedIdentifier";
+    if (type == AstNodetype::Unary_Operator) return "Unary_Operator";
+    return "Unknown";
+}
+
 void Show_vector_string(std::vector<std::string> s) {
     for (auto str: s) std::cout << str << std::endl;
 }
 
 std::string rename_in_dependency(AstNode* node) {
   	if (node->type == AstNodetype::Implementation) {
-  		return "impl@" + rename_in_dependency(node->children[0]);
+  		return "Impl@" + node->value;
   	}
     if (node->type == AstNodetype::Struct || node->type == AstNodetype::Enumeration || node->type == AstNodetype::Type) {
         return "Type@" + node->value;
@@ -31,7 +78,7 @@ bool is_item(AstNode* node) {
 //just like "i32" in code show as a type, it shows a type but its actual_type is a typetype, so we need to convert it to i32
 NodeType& type_to_item(NodeType &a) {
   	if (a == Unit) return a;
-    // std::cout << a.show() << std::endl;
+    // //std::cout << a.show() << std::endl;
     if (a.type != NodeTypeType::Type_of_Type) throw std::runtime_error("Semantic Error: expected type type!");
     return *a.inside_type;
 }
@@ -123,6 +170,9 @@ scope_item& find_scope_type(Scope* scope_value, const AstNode* scope_father, con
 }
 
 scope_item& find_scope_item(Scope* scope_value, const AstNode* scope_father, const std::string& name) {
+    // std::cout << "find scope item with name: " << name << std::endl;
+    std::cout << "father scope node pos: " << &scope_father << std::endl;
+    Show_vector_string(scope_father->show_node());
     auto& res = scope_value->get_item(name);
     if (res.type != NodeTypeType::Unknown) return res;
     if (scope_father == nullptr) return res;
@@ -130,8 +180,8 @@ scope_item& find_scope_item(Scope* scope_value, const AstNode* scope_father, con
 }
 
 void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKnown) {
-    // std::cout << "start dependency check node : " << std::endl;
-    // Show_vector_string(node->show_node());
+    std::cout << "start dependency check node : " << std::endl;
+    Show_vector_string(node->show_node());
 
   	if (current_return_type != UnKnown) {
     	for (auto son: node->children)
@@ -203,16 +253,22 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
 
     //then build sons' dependency graph
     for (auto son: node->children) {
-        // std::cout << "Try next son!\n";
+        // //std::cout << " --- Try next son!\n";
         // Show_vector_string(son->show_node());
 
       	if (son->type == AstNodetype::Function) {
+      	    // Show_vector_string(son->children[0]->show_node());
+      	    // //std::cout << "with scope father :\n";
+      	    // Show_vector_string(son->show_node());
             son->children[0]->scope_value = son->scope_value;
             son->children[0]->scope_father = son->scope_father;
+      	    // //std::cout << "add func \"self\" in node:" << std::endl;
+      	    // Show_vector_string(son->show_node());
             son->scope_value->add_item("self", scope_item(Unit, std::any(), false, false, ++Item_id_tot));
 
             semantic_visit_node(son->children[0], nullptr, nullptr, nullptr);
 
+      	    // //std::cout << "erase self pos : " << &son->scope_value->item_table << std::endl;
             son->scope_value->item_table.erase("self");
 
             //FunctionReturnType
@@ -246,7 +302,12 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
                     if (grand_son != son->children[0]->children[0]) throw std::runtime_error("Semantic Error: self parameter must be the first parameter!");
                     if (current_return_type == UnKnown) throw std::runtime_error("Semantic Error: self parameter can only appear in method!");
 
+                    // //std::cout << "has_mut = " << has_mut << ", has_ref = " << has_ref << std::endl;
+
                     if (has_mut) T.is_mutable = true;
+                    std::cout << "son pos : " << &son << std::endl;
+                    std::cout << "function name : " << son->value << std::endl;
+                    std::cout << "awa awa :" << &son->scope_value->item_table << std::endl;
                     if (has_ref && has_mut)
                     son->scope_value->add_item("self", scope_item(grand_son->actual_type = give_mutref(current_return_type), std::any(), false, false, ++Item_id_tot));
                     if (has_ref && !has_mut)
@@ -255,7 +316,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
                     son->scope_value->add_item("self", scope_item(grand_son->actual_type = current_return_type, std::any(), true, false, ++Item_id_tot));
                     if (!has_ref && !has_mut) {
                         if (grand_son->children.size()) {
-                            auto need_return_type = grand_son->children.back()->actual_type;
+                            auto need_return_type = type_to_item(grand_son->children.back()->actual_type);
                             if (need_return_type != current_return_type)
                             throw std::runtime_error("Semantic Error: self parameter type mismatch!");
                         }
@@ -278,7 +339,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
             son->variableID = si.ID;
     	}
         if (son->type == AstNodetype::Struct) {
-            NodeType* T = new NodeType(NodeTypeType::Struct);
+            auto T = new NodeType(NodeTypeType::Struct);
             T->FM_id = ++Item_id_tot;
             T->SE_name = son->value;
             T->field = new Scope();
@@ -291,7 +352,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
                 semantic_visit_node(son->children[0], nullptr, nullptr, nullptr);
                 for (auto grand_son: son->children[0]->children) {
                     auto &each_type = type_to_item(grand_son->children[0]->actual_type);
-                    // std::cout << "struct add item : " << grand_son->value << std::endl;
+                    //std::cout << "struct add item : " << grand_son->value << std::endl;
                     son->scope_value->add_item("@" + grand_son->value, scope_item(each_type, std::any(), true, true, ++Item_id_tot));
                     T->items_index->insert({grand_son->value, T->items_index->size()});
                     T->items_type.push_back(&each_type);
@@ -340,21 +401,25 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
             node->scope_value->add_item(son->value, scope_item(const_type, son->children[1]->const_value, false, true, ++Item_id_tot));
         }
         if (son->type == AstNodetype::Implementation) {
-            // std::cout << "try son with impl [" << son->value << "]\n";
+            //std::cout << "try son with impl [" << son->value << "]\n";
             NodeType& T = type_to_item(son->scope_value->get_type(son->value).type);
-            // std::cout << "qwq?\n";
+            //std::cout << "qwq?\n";
             if (T.type != NodeTypeType::Struct) throw std::runtime_error("Semantic Error: implementation target must be struct type!");
             son->scope_value = T.field;
             son->scope_father = node;
             T.field->add_type("Self", scope_item(item_to_type(T), std::any(), false, false, ++Item_id_tot));
             son->children[0]->scope_value = son->scope_value;
             son->children[0]->scope_father = son->scope_father;
-            semantic_visit_node(son->children[0], nullptr, nullptr, nullptr);
+            Build_Dependency_Graph(son->children[0], T);
         }
     }
 }
 
 void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop_father = nullptr, AstNode* function_father = nullptr) {
+    std::cout << "start pre: semantic check node : " << std::endl;
+    Show_vector_string(node->show_node());
+    std::cout << "-----just-pre-----\n";
+
     node->father = father;
     if (node->actual_type.type != NodeTypeType::Unknown) return ;//already done
     if (node->type == AstNodetype::Statements) {
@@ -381,6 +446,9 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         for (int i = 0; i < node->children.size(); i++) {
           	auto child = node->children[i];
 			node->now_go_son_id = i;
+            std::cout << "==== now go son ===\n";
+            Show_vector_string(node->show_node());
+            std::cout << show_AstNodetype(child->type) << std::endl;
             semantic_visit_node(child, node, loop_father, function_father);
             node->exist_break |= child->exist_break;
             node->exist_return |= child->exist_return;
@@ -388,10 +456,9 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         }
     }
 
-    // std::cout << "start semantic check node : " << std::endl;
-    // auto opt_str = node->show_node();
-    // for (auto str: opt_str) std::cout << str << std::endl;
-    // std::cout << "----------\n";
+    std::cout << "start semantic check node : " << std::endl;
+    Show_vector_string(node->show_node());
+    std::cout << "-----start-----\n";
 
     //then update state about exist_return, exist_break, must_break
     if (node->type == AstNodetype::Function) {
@@ -464,6 +531,8 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         }
     }
     else if (node->type == AstNodetype::Self) {
+        //std::cout << "find scope item begin with node: " << std::endl;
+        Show_vector_string(node->show_node());
         auto &s = find_scope_item(node->scope_value, node->scope_father, "self");
         if (s.type == UnKnown) throw std::runtime_error("Semantic Error: self identifier not found in field!");
         node->actual_type = s.type;
@@ -500,6 +569,7 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         }
     }
     else if (node->type == AstNodetype::Statements) {
+        //std::cout << "now come Statements\n";
         if (node->children.empty()) {
             node->actual_type = Unit;
         }
@@ -1072,6 +1142,10 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         if (Name.size() != node->children[1]->children.size()) throw std::runtime_error("Semantic Error: struct field give two same item!");
         node->actual_type = *Type.inside_type;
     }
+
+    std::cout << "end semantic check node : " << std::endl;
+    Show_vector_string(node->show_node());
+    std::cout << "-----end-----\n";
 }
 
 void build_universe_scope(AstNode* node) {

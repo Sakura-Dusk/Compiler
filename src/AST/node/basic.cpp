@@ -1,6 +1,7 @@
 //
 // Created by Sakura on 25-9-22.
 //
+#include<iostream>
 
 #include "basic.h"
 
@@ -61,6 +62,10 @@ std::vector<std::string> AstNode::show_node() const {
     if (type == AstNodetype::Unary_Operator) res.back() = "Unary_Operator";
 
     if (!value.empty()) res.back() += ": " + value;
+    // if (actual_type.type != NodeTypeType::Unknown)
+    //     res.back() += "  type:" + actual_type.show();
+    // //not show const_value yet
+    // if (is_mut) res.back() += " mutable";
     return res;
 }
 
@@ -182,10 +187,10 @@ std::vector<std::string> AstNode::show_tree() const {
     for (int i = 0; i < children.size(); i++) {
         auto son_res = children[i]->show_tree();
         res.emplace_back("|");
-        res.push_back((i == children.size() - 1 ? "L__" : "|__") + son_res[0]);
+        if (son_res.size()) res.push_back((i == children.size() - 1 ? "└--" : "├--") + son_res[0]);
         for (int j = 1; j < son_res.size(); j++) {
             if (i != children.size() - 1) res.push_back("|  " + son_res[j]);
-                else res.push_back(son_res[j]);
+                else res.push_back("   " + son_res[j]);
         }
     }
     return res;
@@ -194,19 +199,23 @@ std::vector<std::string> AstNode::show_tree() const {
 scope_item::scope_item(NodeType type, std::any const_value, const bool& is_mutable, const bool& is_uncoverable, const long long ID = -1)
     : type(std::move(type)), const_value(std::move(const_value)), is_mutable(is_mutable), is_uncoverable(is_uncoverable), ID(ID) {}
 
-scope_item unknown_item = scope_item(NodeTypeType::Unknown, std::any(), false, false);
+scope_item unknown_item = scope_item(NodeType(NodeTypeType::Unknown), std::any(), false, false);
 
 scope_item &Scope::get_item(const std::string &name) {
-    if (item_table.contains(name)) return item_table[name];
-    return unknown_item;
+    std::cout << "now get_item :" << name << " , result in :" << item_table[name].type.show() << std::endl;
+    std::cout << &item_table << std::endl;
+    if (!item_table.contains(name)) return unknown_item;
+    return item_table[name];
 }
 
 scope_item &Scope::get_type(const std::string &name) {
-    if (type_table.contains(name)) return type_table[name];
-    return unknown_item;
+    if (!type_table.contains(name)) return unknown_item;
+    return type_table[name];
 }
 
 void Scope::add_item(const std::string &name, const scope_item &item) {
+    std::cout << "now add_item :" << name << " , item type is" << item.type.show() << std::endl;
+    std::cout << &item_table << std::endl;
     item_table[name] = item;
 }
 
