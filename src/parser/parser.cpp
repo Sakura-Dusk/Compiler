@@ -613,7 +613,7 @@ AstNode* get_prefix(const Token& token) {
 
 AstNode* get_infix(const Token& token) {
     auto node = new AstNode;
-    if (token.type == TokenType::Operator) {
+    if (token.type == TokenType::Operator || token.type == TokenType::Punctuation) {
         node->type = AstNodetype::Binary_Operator;
         node->value = token.value;
     }
@@ -828,6 +828,8 @@ AstNode* Parser::pratt_Expression(int precedence, bool only_flag = false) {
             break;
         }
         if (check_Item(prefix_token)) {//go to infix
+            if (prefix_token == (Token){TokenType::Keyword, "continue"} && (check_prefix_value(lexer.peek_next_token()) || check_Item(lexer.peek_next_token())))
+                throw std::runtime_error("RE");
             break;
         }
         throw std::runtime_error("RE");

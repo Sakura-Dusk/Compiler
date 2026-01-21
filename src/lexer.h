@@ -130,7 +130,7 @@ public:
             patterns.push_back({TokenType::Keyword, std::regex(R"(\b)" + keyword + R"(\b)"), "Keyword: " + keyword});
         }
 
-        patterns.push_back({TokenType::Operator, std::regex(R"(->|=>|\.\.)"), "Operator: ->, =>, ..?, etc."});
+        patterns.push_back({TokenType::Operator, std::regex(R"(->|=>)"), "Operator: ->, =>, etc."});
         patterns.push_back({TokenType::Operator, std::regex(R"(::|_)"), "Operator: ::,_"});
         patterns.push_back({TokenType::Operator, std::regex(R"(==|!=|<=|>=|\+=|-=|\*=|/=|%=|\^=|<<=|>>=|&=|\|=|&&|\|\||<<|>>|=)"), "Operator: ==, !=, etc."});
         patterns.push_back({TokenType::Operator, std::regex(R"([-+*\/%&|^!~<>])"), "Operator: +, -, *, /, etc."});

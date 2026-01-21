@@ -73,6 +73,7 @@ public:
 };
 
 enum class AstNodetype {
+    Unknown_Type,
     Program,
     Function,
     Struct,
