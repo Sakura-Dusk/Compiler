@@ -556,7 +556,11 @@ bool check_infix_value(const Token& token) {
 
 AstNode* get_prefix(const Token& token) {
     auto node = new AstNode;
-    if (token.type == TokenType::Identifier) {
+    if (token.type == TokenType::Identifier && (token.value == "i32" || token.value == "u32" || token.value == "isize" || token.value == "usize" || token.value == "char" || token.value == "str" ||token.value == "String" || token.value == "bool")) {
+        node->type = AstNodetype::Type;
+        node->value = token.value;
+    }
+    else if (token.type == TokenType::Identifier) {
         node->type = AstNodetype::Identifier;
         node->value = token.value;
     }

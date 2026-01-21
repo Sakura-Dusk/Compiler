@@ -203,8 +203,8 @@ scope_item::scope_item(NodeType type, std::any const_value, const bool& is_mutab
 scope_item unknown_item = scope_item(NodeType(NodeTypeType::Unknown), std::any(), false, false);
 
 scope_item &Scope::get_item(const std::string &name) {
-    // std::cout << "now get_item :" << name << " , result in :" << item_table[name].type.show() << std::endl;
-    // std::cout << &item_table << std::endl;
+    std::cout << "now get_item :" << name << std::endl;
+    std::cout << &item_table << std::endl;
     if (!item_table.contains(name)) return unknown_item;
     return item_table[name];
 }

@@ -169,7 +169,10 @@ scope_item& find_scope_type(Scope* scope_value, const AstNode* scope_father, con
 }
 
 scope_item& find_scope_item(Scope* scope_value, const AstNode* scope_father, const std::string& name) {
+    std::cout << "find_scope_item\n";
     auto& res = scope_value->get_item(name);
+    // std::cout << "qwq?\n";
+    // std::cout << res.type.show() << std::endl;
     if (res.type != NodeTypeType::Unknown) return res;
     if (scope_father == nullptr) return res;
     return find_scope_item(scope_father->scope_value, scope_father->scope_father, name);
@@ -348,7 +351,6 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
                 semantic_visit_node(son->children[0], nullptr, nullptr, nullptr);
                 for (auto grand_son: son->children[0]->children) {
                     auto &each_type = type_to_item(grand_son->children[0]->actual_type);
-                    //std::cout << "struct add item : " << grand_son->value << std::endl;
                     son->scope_value->add_item("@" + grand_son->value, scope_item(each_type, std::any(), true, true, ++Item_id_tot));
                     T->items_index->insert({grand_son->value, T->items_index->size()});
                     T->items_type.push_back(&each_type);
@@ -412,9 +414,9 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
 }
 
 void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop_father = nullptr, AstNode* function_father = nullptr) {
-    // std::cout << "start pre: semantic check node : " << std::endl;
-    // Show_vector_string(node->show_node());
-    // std::cout << "-----just-pre-----\n";
+    std::cout << "start pre: semantic check node : " << std::endl;
+    Show_vector_string(node->show_node());
+    std::cout << "-----just-pre-----\n";
 
     node->father = father;
     if (node->actual_type.type != NodeTypeType::Unknown) return ;//already done
@@ -453,9 +455,9 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         }
     }
 
-    // std::cout << "start semantic check node : " << std::endl;
-    // Show_vector_string(node->show_node());
-    // std::cout << "-----start-----\n";
+    std::cout << "start semantic check node : " << std::endl;
+    Show_vector_string(node->show_node());
+    std::cout << "-----start-----\n";
 
     //then update state about exist_return, exist_break, must_break
     if (node->type == AstNodetype::Function) {
@@ -492,9 +494,8 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
             s = find_scope_type(node->scope_value, node->scope_father, node->value);
         else if (father->type == AstNodetype::Binary_Operator && father->value == "as" && father->now_go_son_id == 1)
             s = find_scope_type(node->scope_value, node->scope_father, node->value);
-        else if (father->type == AstNodetype::StructField && father->now_go_son_id == 0) {
+        else if (father->type == AstNodetype::StructField && father->now_go_son_id == 0)
             s = find_scope_type(node->scope_value, node->scope_father, node->value);
-        }
         else {
             // std::cout << "Try get scope_item from sth Field\n";
             s = find_scope_item(node->scope_value, node->scope_father, node->value);
@@ -530,6 +531,7 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         }
     }
     else if (node->type == AstNodetype::Self) {
+        std::cout << "node->type = Self\n";
         auto &s = find_scope_item(node->scope_value, node->scope_father, "self");
         if (s.type == UnKnown) throw std::runtime_error("Semantic Error: self identifier not found in field!");
         node->actual_type = s.type;
@@ -1135,7 +1137,7 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         }
         std::sort(Name.begin(), Name.end());
         Name.erase(std::unique(Name.begin(), Name.end()), Name.end());
-        if (Name.size() != Type.items_type.size()) throw std::runtime_error("Semantic Error: struct field lost some item!");
+        if (Name.size() != inside_type->items_type.size()) throw std::runtime_error("Semantic Error: struct field lost some item!");
         if (Name.size() != node->children[1]->children.size()) throw std::runtime_error("Semantic Error: struct field give two same item!");
         node->actual_type = *Type.inside_type;
     }
