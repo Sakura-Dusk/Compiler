@@ -8,9 +8,5 @@ Comment: exit function test, the main function must have an exit function call a
 */
 
 fn main() {
-    println(r#"Why is there no exit in main?
-Look in my eyes!
-Tell me!
-WHY!"#
-    );
+    println(r#"Why is there no exit in main? Look in my eyes! Tell me! WHY!"#);
 }

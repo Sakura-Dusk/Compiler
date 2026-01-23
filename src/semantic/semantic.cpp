@@ -8,6 +8,8 @@
 
 #include "../../cmake-build-release/_deps/googletest-src/googletest/include/gtest/internal/gtest-port.h"
 
+bool main_has_exit = false;
+
 std::string show_AstNodetype(AstNodetype type) {
     if (type == AstNodetype::Break) return "Break";
     if (type == AstNodetype::Continue) return "Continue";
@@ -512,7 +514,7 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         if (s.type.is_exit && father->type == AstNodetype::FunctionCall && father->now_go_son_id == 0) {
             auto now_node = father->father;
             if (now_node == nullptr) throw std::runtime_error("Semantic Error: exit function must be called in main function body!");
-            if (now_node->type != AstNodetype::Expression && now_node->type != AstNodetype::Return) throw std::runtime_error("Semantic Error: exit function must be called in main function body!");
+            if (now_node->type != AstNodetype::Expression && now_node->type != AstNodetype::Return_Cur) throw std::runtime_error("Semantic Error: exit function must be called in main function body!");
 
             now_node = now_node->father;
             if (now_node == nullptr) throw std::runtime_error("Semantic Error: exit function must be called in main function body!");
@@ -525,6 +527,8 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
             now_node = now_node->father;
             if (now_node == nullptr) throw std::runtime_error("Semantic Error: exit function must be called in main function body!");
             if (now_node->type != AstNodetype::Program) throw std::runtime_error("Semantic Error: exit function must be called in main function body!");
+
+            main_has_exit = true;
         }
     }
     else if (node->type == AstNodetype::Self) {
@@ -1138,6 +1142,9 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         if (Name.size() != inside_type->items_type.size()) throw std::runtime_error("Semantic Error: struct field lost some item!");
         if (Name.size() != node->children[1]->children.size()) throw std::runtime_error("Semantic Error: struct field give two same item!");
         node->actual_type = *Type.inside_type;
+    }
+    else if (node->type == AstNodetype::Program) {
+        if (!main_has_exit) throw std::runtime_error("Semantic Error: Program does not have exit statement!");
     }
 
     // std::cout << "end semantic check node : " << std::endl;

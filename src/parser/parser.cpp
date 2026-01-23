@@ -689,6 +689,10 @@ AstNode* Parser::pratt_Expression(int precedence, bool only_flag = false) {
 
     while (true) {
         auto prefix_token = lexer.get_next_token();
+
+        // std::cout << tokenTypeToString(prefix_token.type) << ":\n" << prefix_token.value << std::endl;
+        // std::cout << "prefix qwq!\n";
+
         if (prefix_token == (Token){TokenType::Punctuation, "("}) {
             if (lexer.peek_next_token() == (Token){TokenType::Punctuation, ")"}) {
                 lexer.get_next_token();
@@ -841,6 +845,10 @@ AstNode* Parser::pratt_Expression(int precedence, bool only_flag = false) {
 
     while (true) {
         auto infix_token = lexer.peek_next_token();
+
+        // std::cout << tokenTypeToString(infix_token.type) << " " << infix_token.value << std::endl;
+        // std::cout << "infix qwq!\n";
+
         if (check_infix_value(infix_token) == false) break;
         auto now_precedence = get_infix_precedence(infix_token);
         if (now_precedence <= precedence) break;
