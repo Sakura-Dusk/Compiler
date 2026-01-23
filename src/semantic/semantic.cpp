@@ -105,7 +105,7 @@ NodeType give_mutref(NodeType &a) {
 
 //first one is expected type, second one is expression type
 void Expect_Type_match(const NodeType& type, const NodeType& expr_type, std::string RE_words, bool mut_removeable = true) {
-  	if (type == expr_type || type == Never || type == Wildcard || expr_type == Wildcard) return;
+  	if (type == expr_type || expr_type == Never || type == Wildcard || expr_type == Wildcard) return;
     if (expr_type == Int && (type == I32 || type == U32 || type == Isize || type == Usize || type == UInt || type == IInt)) return;
     if (expr_type == IInt && (type == I32 || type == Isize)) return;
     if (expr_type == UInt && (type == U32 || type == Usize)) return;
@@ -261,13 +261,9 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
       	    // Show_vector_string(son->show_node());
             son->children[0]->scope_value = son->scope_value;
             son->children[0]->scope_father = son->scope_father;
-      	    // //std::cout << "add func \"self\" in node:" << std::endl;
-      	    // Show_vector_string(son->show_node());
             son->scope_value->add_item("self", scope_item(Unit, std::any(), false, false, ++Item_id_tot));
 
             semantic_visit_node(son->children[0], nullptr, nullptr, nullptr);
-
-      	    // //std::cout << "erase self pos : " << &son->scope_value->item_table << std::endl;
             son->scope_value->item_table.erase("self");
 
             //FunctionReturnType
@@ -275,8 +271,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
             son->children[1]->scope_father = son->scope_father;
             semantic_visit_node(son->children[1], nullptr, nullptr, nullptr);
 
-            NodeType return_type = son->children[1]->actual_type;
-            NodeType T(NodeTypeType::Function, new NodeType(type_to_item(return_type)), -1);
+            NodeType T(NodeTypeType::Function, new NodeType(type_to_item(son->children[1]->actual_type)), -1);
             son->scope_value = new Scope();
             son->scope_father = node;
             if (node->scope_value->get_item(son->value).is_uncoverable == true) {
@@ -289,7 +284,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
                     if (to->type == AstNodetype::Quantifier && to->value == "mut") has_mut = true;
                 }
                 if (grand_son->type != AstNodetype::Self) {
-                    NodeType param_type = type_to_item(grand_son->children.back()->actual_type);
+                    auto param_type = type_to_item(grand_son->children.back()->actual_type);
                     if (has_ref) throw std::runtime_error("Semantic Error: function parameter cannot be reference type!");
                     if (has_mut) son->scope_value->add_item(grand_son->value, scope_item(param_type, std::any(), true, false, ++Item_id_tot));
                     else son->scope_value->add_item(grand_son->value, scope_item(param_type, std::any(), false, false, ++Item_id_tot));
@@ -415,7 +410,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
 
 void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop_father = nullptr, AstNode* function_father = nullptr) {
     // std::cout << "start pre: semantic check node : " << std::endl;
-    // Show_vector_string(node->show_node());
+    // Show_vector_string(node->show_tree());
     // std::cout << "-----just-pre-----\n";
 
     node->father = father;
@@ -486,6 +481,8 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
 	if (node->type == AstNodetype::Function) {
         auto return_type = type_to_item(node->children[1]->actual_type);
 	    auto func_type = node->children[2]->actual_type;
+	    // std::cout << return_type.show() << std::endl;
+	    // std::cout << func_type.show() << std::endl;
 	    Expect_Type_match(return_type, func_type, "function " + node->value + " return type mismatch!");
     }
     else if (node->type == AstNodetype::Identifier) {
@@ -579,7 +576,8 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
             else {
                 node->actual_type = Unit;
                 for (auto son: node->children)
-                    if (son->actual_type == Never || son->exist_break || son->exist_return) node->actual_type == Never;
+                    if (son->actual_type == Never || son->exist_break || son->exist_return)
+                        node->actual_type = Never;
             }
             for (auto son: node->children) if (son != node->children.back())
                 if (son->type == AstNodetype::Return_Cur && son->actual_type != Unit && son->actual_type != Never)
@@ -1143,7 +1141,8 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
     }
 
     // std::cout << "end semantic check node : " << std::endl;
-    // Show_vector_string(node->show_node());
+    // Show_vector_string(node->show_tree());
+    // std::cout << node->actual_type.show() << std::endl;
     // std::cout << "-----end-----\n";
 }
 

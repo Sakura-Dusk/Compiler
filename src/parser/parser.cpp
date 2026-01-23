@@ -770,9 +770,9 @@ AstNode* Parser::pratt_Expression(int precedence, bool only_flag = false) {
             parser_Statements(block_node);
             lexer.expect((Token){TokenType::Punctuation, "}"});
             if (lexer.peek_next_token() != (Token){TokenType::Keyword, "else"}) {
-                return root;
-                // if (only_flag) return root;
-                // break;
+                // return root;
+                if (only_flag) return root;
+                break;
             }
             continue;
         }
@@ -794,9 +794,9 @@ AstNode* Parser::pratt_Expression(int precedence, bool only_flag = false) {
             parser_Statements(block_node);
             lexer.expect((Token){TokenType::Punctuation, "}"});
 
-            return root;
-            // if (only_flag) return root;
-            // break;
+            // return root;
+            if (only_flag) return root;
+            break;
         }
         else if (prefix_token == (Token){TokenType::Operator, "&"} || prefix_token == (Token){TokenType::Operator, "&&"}) {
             if (prefix_token == (Token){TokenType::Operator, "&&"}) {
