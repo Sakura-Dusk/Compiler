@@ -169,7 +169,7 @@ scope_item& find_scope_type(Scope* scope_value, const AstNode* scope_father, con
 }
 
 scope_item& find_scope_item(Scope* scope_value, const AstNode* scope_father, const std::string& name) {
-    std::cout << "find_scope_item\n";
+    // std::cout << "find_scope_item\n";
     auto& res = scope_value->get_item(name);
     // std::cout << "qwq?\n";
     // std::cout << res.type.show() << std::endl;
@@ -414,9 +414,9 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
 }
 
 void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop_father = nullptr, AstNode* function_father = nullptr) {
-    std::cout << "start pre: semantic check node : " << std::endl;
-    Show_vector_string(node->show_node());
-    std::cout << "-----just-pre-----\n";
+    // std::cout << "start pre: semantic check node : " << std::endl;
+    // Show_vector_string(node->show_node());
+    // std::cout << "-----just-pre-----\n";
 
     node->father = father;
     if (node->actual_type.type != NodeTypeType::Unknown) return ;//already done
@@ -455,9 +455,9 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         }
     }
 
-    std::cout << "start semantic check node : " << std::endl;
-    Show_vector_string(node->show_node());
-    std::cout << "-----start-----\n";
+    // std::cout << "start semantic check node : " << std::endl;
+    // Show_vector_string(node->show_node());
+    // std::cout << "-----start-----\n";
 
     //then update state about exist_return, exist_break, must_break
     if (node->type == AstNodetype::Function) {
@@ -531,7 +531,7 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         }
     }
     else if (node->type == AstNodetype::Self) {
-        std::cout << "node->type = Self\n";
+        // std::cout << "node->type = Self\n";
         auto &s = find_scope_item(node->scope_value, node->scope_father, "self");
         if (s.type == UnKnown) throw std::runtime_error("Semantic Error: self identifier not found in field!");
         node->actual_type = s.type;

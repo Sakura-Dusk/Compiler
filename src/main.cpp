@@ -12,7 +12,8 @@
 
 int main() {
     std::vector<std::string> testFiles = {
-        "testcases/testcases/test.in",
+        // "testcases/testcases/test.in",
+        "testcases/testcases/misc1.in",
     };
     
     for (const auto& filePath : testFiles) {
@@ -33,8 +34,8 @@ int main() {
             auto parser = Parser(rustCode);
             AstNode* ast_root = parser.work();
 
-            auto opt = ast_root->show_tree();
-            for (auto str: opt) std::cout << str << std::endl;
+            // auto opt = ast_root->show_tree();
+            // for (auto str: opt) std::cout << str << std::endl;
             
             // 语义分析
             Semantic_check(ast_root);
