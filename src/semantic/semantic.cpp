@@ -216,7 +216,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
             if (now_node->type == AstNodetype::Type || now_node->type == AstNodetype::Identifier) {
                 std::string to_name = rename_in_dependency(now_node);
                 int to = lower_bound(name.begin(), name.end(), to_name) - name.begin();
-                if (to != name.size() && now == to && name[to] == to_name && mp[name[to]]->type != AstNodetype::Function) {
+                if (to != name.size() && name[to] == to_name && mp[name[to]]->type != AstNodetype::Function) {
                     G[to].push_back(now); du[now]++;
                 }
             }
@@ -254,7 +254,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
 
     //then build sons' dependency graph
     for (auto son: node->children) {
-        // //std::cout << " --- Try next son!\n";
+        // std::cout << " --- Try next son!\n";
         // Show_vector_string(son->show_node());
 
       	if (son->type == AstNodetype::Function) {
