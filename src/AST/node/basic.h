@@ -29,14 +29,14 @@ class Scope;
 class NodeType {
 public:
     NodeTypeType type;
-    NodeType* inside_type;//for array each type, type_of_type inside type, function,method return type
-    NodeType* self_type;//only for method, type of Self
+    NodeType* inside_type = nullptr;//for array each type, type_of_type inside type, function,method return type
+    NodeType* self_type = nullptr;//only for method, type of Self
     bool is_mutable = false;
     unsigned int item_length = 0;
     int FM_id = 0;//function or method id
     std::string SE_name;//struct or enum name
     std::vector<NodeType*> items_type;
-    std::map<std::string, unsigned int>* items_index;
+    std::map<std::string, unsigned int>* items_index = nullptr;
     Scope* field = nullptr;
 
     bool is_exit = false;
@@ -125,12 +125,12 @@ public:
     AstNodetype type;
     std::string value;
 
-    AstNode* father;
+    AstNode* father = nullptr;
     NodeType actual_type;
     std::any const_value;
 
-    Scope*scope_value;
-    AstNode* scope_father;
+    Scope*scope_value = nullptr;
+    AstNode* scope_father = nullptr;
 
     int now_go_son_id;
     bool is_mut = false;
