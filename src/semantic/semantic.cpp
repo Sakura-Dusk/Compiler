@@ -688,7 +688,7 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         auto const_value = node->children[0]->const_value;
         if (node->value == "-") {
             auto should_type = IInt;
-            Expect_Type_match(should_type, operand_type, "unary - operator type mismatch!");
+            Number_Type_Pair(should_type, operand_type, "unary - operator type mismatch!");
             node->actual_type = operand_type;
             if (const_value.has_value()) node->const_value = -std::any_cast<long long>(const_value);
         }
