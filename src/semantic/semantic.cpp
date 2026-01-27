@@ -546,7 +546,7 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         else if (node->value == "isize") node->actual_type = Isize_Type;
         else if (node->value == "usize") node->actual_type = Usize_Type;
         else if (node->value == "str") node->actual_type = Str_Type;
-        else if (node->value == "string") node->actual_type = String_Type;
+        else if (node->value == "String") node->actual_type = String_Type;
         else if (node->value == "char") node->actual_type = Char_Type;
         else if (node->value == "bool") node->actual_type = Bool_Type;
         else if (node->value == "()") node->actual_type = Unit;
