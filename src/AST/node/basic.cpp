@@ -197,8 +197,8 @@ std::vector<std::string> AstNode::show_tree() const {
     return res;
 }
 
-scope_item::scope_item(NodeType type, std::any const_value, const bool& is_mutable, const bool& is_uncoverable, const long long ID = -1)
-    : type(std::move(type)), const_value(std::move(const_value)), is_mutable(is_mutable), is_uncoverable(is_uncoverable), ID(ID) {}
+scope_item::scope_item(NodeType type, std::any const_value, const bool& is_mutable, const bool& is_uncoverable)
+    : type(std::move(type)), const_value(std::move(const_value)), is_mutable(is_mutable), is_uncoverable(is_uncoverable) {}
 
 scope_item unknown_item = scope_item(NodeType(NodeTypeType::Unknown), std::any(), false, false);
 

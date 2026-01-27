@@ -52,13 +52,12 @@ public:
 class scope_item {
 public:
     scope_item() = default;
-    scope_item(NodeType, std::any, const bool&, const bool&, long long);
+    scope_item(NodeType, std::any, const bool&, const bool&);
 
     NodeType type = NodeTypeType::Unknown;
     std::any const_value;
     bool is_mutable = false;
     bool is_uncoverable = false;
-    long long ID;
 };
 
 class Scope {
@@ -136,8 +135,6 @@ public:
     bool is_mut = false;
     bool is_variable = false;
     bool exist_break = false, exist_return = false, must_break = false;
-
-    long long variableID;
 
     std::vector<std::string> show_tree() const;
     std::vector<std::string> show_node() const;

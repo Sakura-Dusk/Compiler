@@ -263,7 +263,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
       	    // Show_vector_string(son->show_node());
             son->children[0]->scope_value = son->scope_value;
             son->children[0]->scope_father = son->scope_father;
-            son->scope_value->add_item("self", scope_item(Unit, std::any(), false, false, ++Item_id_tot));
+            son->scope_value->add_item("self", scope_item(Unit, std::any(), false, false));
 
             semantic_visit_node(son->children[0], nullptr, nullptr, nullptr);
             son->scope_value->item_table.erase("self");
@@ -288,10 +288,9 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
                 if (grand_son->type != AstNodetype::Self) {
                     auto param_type = type_to_item(grand_son->children.back()->actual_type);
                     if (has_ref) throw std::runtime_error("Semantic Error: function parameter cannot be reference type!");
-                    if (has_mut) son->scope_value->add_item(grand_son->value, scope_item(param_type, std::any(), true, false, ++Item_id_tot));
-                    else son->scope_value->add_item(grand_son->value, scope_item(param_type, std::any(), false, false, ++Item_id_tot));
+                    if (has_mut) son->scope_value->add_item(grand_son->value, scope_item(param_type, std::any(), true, false));
+                    else son->scope_value->add_item(grand_son->value, scope_item(param_type, std::any(), false, false));
                     grand_son->actual_type = param_type;
-                    grand_son->variableID = Item_id_tot;
                     T.items_type.push_back(new NodeType(param_type));
                 }
                 else {
@@ -305,11 +304,11 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
                     // std::cout << "function name : " << son->value << std::endl;
                     // std::cout << "awa awa :" << &son->scope_value->item_table << std::endl;
                     if (has_ref && has_mut)
-                    son->scope_value->add_item("self", scope_item(grand_son->actual_type = give_mutref(current_return_type), std::any(), false, false, ++Item_id_tot));
+                    son->scope_value->add_item("self", scope_item(grand_son->actual_type = give_mutref(current_return_type), std::any(), false, false));
                     if (has_ref && !has_mut)
-                    son->scope_value->add_item("self", scope_item(grand_son->actual_type = give_ref(current_return_type), std::any(), false, false, ++Item_id_tot));
+                    son->scope_value->add_item("self", scope_item(grand_son->actual_type = give_ref(current_return_type), std::any(), false, false));
                     if (!has_ref && has_mut)
-                    son->scope_value->add_item("self", scope_item(grand_son->actual_type = current_return_type, std::any(), true, false, ++Item_id_tot));
+                    son->scope_value->add_item("self", scope_item(grand_son->actual_type = current_return_type, std::any(), true, false));
                     if (!has_ref && !has_mut) {
                         if (grand_son->children.size()) {
                             auto need_return_type = type_to_item(grand_son->children.back()->actual_type);
@@ -317,22 +316,16 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
                             throw std::runtime_error("Semantic Error: self parameter type mismatch!");
                         }
 
-                        son->scope_value->add_item("self", scope_item(grand_son->actual_type = current_return_type, std::any(), false, false, ++Item_id_tot));
+                        son->scope_value->add_item("self", scope_item(grand_son->actual_type = current_return_type, std::any(), false, false));
                     }
 
-                    grand_son->variableID = Item_id_tot;
                     T.type = NodeTypeType::Method;
                     T.self_type = &son->scope_value->get_item("self").type;
                 }
             }
 
-            auto si = scope_item(T, std::any(), false, true, 1);
-            if (!(node->type == AstNodetype::Program && son->value == "main")) {
-             	si.ID = ++Item_id_tot;
-            }
+            auto si = scope_item(T, std::any(), false, true);
             node->scope_value->add_item(son->value, si);
-
-            son->variableID = si.ID;
     	}
         if (son->type == AstNodetype::Struct) {
             auto T = new NodeType(NodeTypeType::Struct);
@@ -348,7 +341,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
                 semantic_visit_node(son->children[0], nullptr, nullptr, nullptr);
                 for (auto grand_son: son->children[0]->children) {
                     auto &each_type = type_to_item(grand_son->children[0]->actual_type);
-                    son->scope_value->add_item("@" + grand_son->value, scope_item(each_type, std::any(), true, true, ++Item_id_tot));
+                    son->scope_value->add_item("@" + grand_son->value, scope_item(each_type, std::any(), true, true));
                     T->items_index->insert({grand_son->value, T->items_index->size()});
                     T->items_type.push_back(&each_type);
                 }
@@ -356,7 +349,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
             if (node->scope_value->get_type(son->value).is_uncoverable == true) {
             	throw std::runtime_error("Semantic Error: redefinition of struct " + son->value + "!");
             }
-            node->scope_value->add_type(son->value, scope_item(item_to_type(T), std::any(), false, true, T->FM_id));
+            node->scope_value->add_type(son->value, scope_item(item_to_type(T), std::any(), false, true));
             son->actual_type = item_to_type(T);
         }
         if (son->type == AstNodetype::Enumeration) {
@@ -373,7 +366,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
             if (node->scope_value->get_type(son->value).is_uncoverable == true) {
             	throw std::runtime_error("Semantic Error: redefinition of enum " + son->value + "!");
             }
-            node->scope_value->add_type(son->value, scope_item(item_to_type(T), std::any(), false, true, T->FM_id));
+            node->scope_value->add_type(son->value, scope_item(item_to_type(T), std::any(), false, true));
         }
         if (son->type == AstNodetype::ConstantItem) {
 			son->children[0]->scope_value = son->scope_value;
@@ -393,7 +386,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
             if (node->scope_value->get_item(son->value).is_uncoverable == true) {
             	throw std::runtime_error("Semantic Error: redefinition of constant item " + son->value + "!");
             }
-            node->scope_value->add_item(son->value, scope_item(const_type, son->children[1]->const_value, false, true, ++Item_id_tot));
+            node->scope_value->add_item(son->value, scope_item(const_type, son->children[1]->const_value, false, true));
         }
         if (son->type == AstNodetype::Implementation) {
             //std::cout << "try son with impl [" << son->value << "]\n";
@@ -402,7 +395,7 @@ void Build_Dependency_Graph(AstNode* node, NodeType& current_return_type = UnKno
             if (T.type != NodeTypeType::Struct) throw std::runtime_error("Semantic Error: implementation target must be struct type!");
             son->scope_value = T.field;
             son->scope_father = node;
-            T.field->add_type("Self", scope_item(item_to_type(T), std::any(), false, false, ++Item_id_tot));
+            T.field->add_type("Self", scope_item(item_to_type(T), std::any(), false, false));
             son->children[0]->scope_value = son->scope_value;
             son->children[0]->scope_father = son->scope_father;
             Build_Dependency_Graph(son->children[0], T);
@@ -510,7 +503,6 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         node->is_variable = true;
         node->actual_type = s.type;
         node->const_value = s.const_value;
-        node->variableID = s.ID;
 
         if (s.type.is_exit && father->type == AstNodetype::FunctionCall && father->now_go_son_id == 0) {
             auto now_node = father->father;
@@ -539,7 +531,6 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         node->actual_type = s.type;
         node->is_mut = s.is_mutable;
         node->is_variable = true;
-        node->variableID = s.ID;
     }
     else if (node->type == AstNodetype::Type) {
         if (node->value == "i32") node->actual_type = I32_Type;
@@ -602,10 +593,9 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
             if (expr_type == Int || expr_type == IInt) var_type = I32;
             if (expr_type == Never) var_type = Unit;
         }
-        scope_item value(var_type, std::any(), false, false, ++Item_id_tot);
+        scope_item value(var_type, std::any(), false, false);
         if (node->children[0]->value == "mut") value.is_mutable = true;
         node->actual_type = var_type;
-        node->variableID = value.ID;
         auto item = find_scope_item(node->scope_value, node->scope_father, node->value);
         if (item.is_uncoverable) throw std::runtime_error("Semantic Error: redefinition of a uncoverable variable " + node->value + "!");
         if (node->value != "_") node->scope_value->add_item(node->value, value);
@@ -748,7 +738,6 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
                     node->const_value = const_value1 % const_value2;
                 }
             }
-            node->variableID = ++Item_id_tot;
         }
         else if (node->value == "<<" || node->value == ">>") {
             if (type1.type == NodeTypeType::Amp) type1 = *type1.inside_type;
@@ -764,7 +753,6 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
                 if (node->value == "<<") node->const_value = const_value1 << const_value2;
                 else if (node->value == ">>") node->const_value = const_value1 >> const_value2;
             }
-            node->variableID = ++Item_id_tot;
         }
         else if (node->value == "&" || node->value == "|" || node->value == "^") {
             if (type1.type == NodeTypeType::Amp) type1 = *type1.inside_type;
@@ -790,7 +778,6 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
                     else if (node->value == "^") node->const_value = const_value1 ^ const_value2;
                 }
             }
-            node->variableID = ++Item_id_tot;
         }
         else if (node->value == "==" || node->value == "!=") {
             while ((type1.type == NodeTypeType::Amp || type1.type == NodeTypeType::Mut_Amp) && (type2.type == NodeTypeType::Amp || type2.type == NodeTypeType::Mut_Amp)) {
@@ -839,8 +826,6 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
                     else if (node->value == "!=") node->const_value = (const_value1 != const_value2);
                 }
             }
-
-            node->variableID = ++Item_id_tot;
         }
         else if (node->value == "<" || node->value == "<=" || node->value == ">" || node->value == ">=") {
             while ((type1.type == NodeTypeType::Amp || type1.type == NodeTypeType::Mut_Amp) && (type2.type == NodeTypeType::Amp || type2.type == NodeTypeType::Mut_Amp)) {
@@ -880,8 +865,6 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
                     else if (node->value == ">=") node->const_value = (const_value1 >= const_value2);
                 }
             }
-
-            node->variableID = ++Item_id_tot;
         }
         else if (node->value == "&&" || node->value == "||") {
             if (type1.type == NodeTypeType::Amp) type1 = *type1.inside_type;
@@ -895,8 +878,6 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
                 if (node->value == "&&") node->const_value = const_value1 && const_value2;
                 else if (node->value == "||") node->const_value = const_value1 || const_value2;
             }
-
-            node->variableID = ++Item_id_tot;
         }
         else if (node->value == "=") {
             if (node->children[0]->is_mut == false)
@@ -938,7 +919,6 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
                 node->actual_type = value.type;
                 node->is_variable = node->children[1]->is_variable;
                 node->const_value = value.const_value;
-                node->variableID = value.ID;
             }
             else {//Enum
                 if (!Type.items_index->contains(node->children[1]->value)) throw std::runtime_error("Semantic Error: enum has no variant " + node->children[1]->value + "!");
@@ -957,7 +937,6 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
             }
             if (Type.type == NodeTypeType::Array && node->children[1]->type == AstNodetype::Identifier && node->children[1]->value == "len") {//function .len
                 node->actual_type = (NodeType){NodeTypeType::Function, &Usize, 0};
-                node->variableID = 1;
             }
             else if ((Type == U32 || Type == Usize || Type == UInt || Type == Int) && node->children[1]->type == AstNodetype::Identifier && node->children[1]->value == "to_string") {
                 if (node->children[0]->const_value.has_value() && node->father->type == AstNodetype::FunctionCall) {
@@ -978,7 +957,6 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
                     if (value.type.is_mutable && !node->is_mut && node->is_variable) throw std::runtime_error("Semantic Error: cannot call mutable method on immutable variable!");
                     value.type.type = NodeTypeType::Function;
                     value.type.self_type = nullptr;
-                    node->variableID = value.ID;
                 }
                 node->actual_type = value.type;
                 if (!value.is_mutable) node->is_mut = false;
@@ -995,7 +973,6 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
                 else if (type1 == Bool) node->const_value = static_cast<long long>(std::any_cast<bool>(value1));
                 else if (type1 == Char) node->const_value = static_cast<long long>(std::any_cast<char>(value1));
             }
-            node->variableID = ++Item_id_tot;
         }
     }
     else if (node->type == AstNodetype::Char_Literal) {
@@ -1105,8 +1082,6 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
             Expect_Type_match(type1, type2, "Semantic Error: function call but args number type mismatch at item " + std::to_string(i) + "![0 index]");
         }
         node->actual_type = *function_type.inside_type;
-        if (node->actual_type != Unit)
-            node->variableID = ++Item_id_tot;
     }
     else if (node->type == AstNodetype::ArrayIndex) {
         auto type1 = node->children[0]->actual_type;
@@ -1164,24 +1139,24 @@ void build_universe_scope(AstNode* node) {
 
     NodeType funct = NodeType(NodeTypeType::Function, &Unit, 0);
     funct.items_type.push_back(&I32); funct.is_exit = true;
-    node->scope_value->add_item("exit", scope_item(funct, std::any(), false, true, ++Item_id_tot));
+    node->scope_value->add_item("exit", scope_item(funct, std::any(), false, true));
     funct.is_exit = false;
 
-    node->scope_value->add_type("printInt", scope_item(funct, std::any(), false, true, ++Item_id_tot));
-    node->scope_value->add_type("printlnInt", scope_item(funct, std::any(), false, true, ++Item_id_tot));
+    node->scope_value->add_type("printInt", scope_item(funct, std::any(), false, true));
+    node->scope_value->add_type("printlnInt", scope_item(funct, std::any(), false, true));
 
     funct = NodeType(NodeTypeType::Function, &Unit, 0);
     funct.items_type.push_back(&Str_Amp);
-    node->scope_value->add_type("print", scope_item(funct, std::any(), false, true, ++Item_id_tot));
-    node->scope_value->add_type("println", scope_item(funct, std::any(), false, true, ++Item_id_tot));
+    node->scope_value->add_type("print", scope_item(funct, std::any(), false, true));
+    node->scope_value->add_type("println", scope_item(funct, std::any(), false, true));
 
     funct = NodeType(NodeTypeType::Function, &Unit, 0);
     funct.inside_type = &I32;
-    node->scope_value->add_type("getInt", scope_item(funct, std::any(), false, true, ++Item_id_tot));
+    node->scope_value->add_type("getInt", scope_item(funct, std::any(), false, true));
 
     funct = NodeType(NodeTypeType::Function, &Unit, 0);
     funct.inside_type = &String;
-    node->scope_value->add_type("getString", scope_item(funct, std::any(), false, true, ++Item_id_tot));
+    node->scope_value->add_type("getString", scope_item(funct, std::any(), false, true));
 }
 
 void Semantic_check(AstNode* node) {
