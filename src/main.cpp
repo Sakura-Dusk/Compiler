@@ -13,7 +13,7 @@
 int main() {
     std::vector<std::string> testFiles = {
         // "testcases/testcases/test.in",
-        "testcases/testcases/test.in",
+        "testcases/testcases/basic23.in",
     };
     
     for (const auto& filePath : testFiles) {

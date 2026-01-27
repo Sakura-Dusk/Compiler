@@ -111,7 +111,7 @@ void Expect_Type_match(const NodeType& type, const NodeType& expr_type, std::str
     if (expr_type == Int && (type == I32 || type == U32 || type == Isize || type == Usize || type == UInt || type == IInt)) return;
     if (expr_type == IInt && (type == I32 || type == Isize)) return;
     if (expr_type == UInt && (type == U32 || type == Usize)) return;
-    if (mut_removeable && expr_type.type == NodeTypeType::Amp && type.type == NodeTypeType::Mut_Amp)
+    if (mut_removeable && expr_type.type == NodeTypeType::Mut_Amp && type.type == NodeTypeType::Amp)
       	return Expect_Type_match(*type.inside_type, *expr_type.inside_type, RE_words, false);
    	if (expr_type.type == NodeTypeType::Mut_Amp && type.type == NodeTypeType::Mut_Amp)
       	return Expect_Type_match(*type.inside_type, *expr_type.inside_type, RE_words, false);
@@ -453,7 +453,7 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
     }
 
     // std::cout << "start semantic check node : " << std::endl;
-    // Show_vector_string(node->show_node());
+    // Show_vector_string(node->show_tree());
     // std::cout << "-----start-----\n";
 
     //then update state about exist_return, exist_break, must_break
@@ -1100,6 +1100,7 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
         for (int i = 0; i < function_type.items_type.size(); i++) {
             auto type1 = *function_type.items_type[i];
             auto type2 = node->children[1]->children[i]->actual_type;
+            // std::cout << type1.show() << " " << type2.show() << std::endl;
             Expect_Type_match(type1, type2, "Semantic Error: function call but args number type mismatch at item " + std::to_string(i) + "![0 index]");
         }
         node->actual_type = *function_type.inside_type;
