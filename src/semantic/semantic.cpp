@@ -488,6 +488,7 @@ void semantic_visit_node(AstNode* node, AstNode* father = nullptr, AstNode* loop
 	    Expect_Type_match(return_type, func_type, "function " + node->value + " return type mismatch!");
     }
     else if (node->type == AstNodetype::Identifier) {
+        if (father->type == AstNodetype::Enumeration) return ;// no need to care for enum items
         scope_item s;
         if (father->type == AstNodetype::Binary_Operator && father->value == "::" && father->now_go_son_id == 0)
             s = find_scope_type(node->scope_value, node->scope_father, node->value);
